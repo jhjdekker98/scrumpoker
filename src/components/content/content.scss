@@ -1,0 +1,12 @@
+.content {
+  display: flex;
+  flex-flow: row wrap;
+}
+
+.content-col {
+  background-color: var(--bg-color-up1);
+  color: var(--text-color);
+  padding: 0.5em 1em;
+  margin: 1em;
+  flex: 1 0 auto;
+}
