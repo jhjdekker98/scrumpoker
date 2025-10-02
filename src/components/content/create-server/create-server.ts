@@ -1,6 +1,7 @@
 import {Component} from "../../component/component";
 import "./create-server.scss";
 import {ModifyCard} from "./modify-card/modify-card";
+import {PasswordInput} from "../../shared/password-input/password-input";
 
 export interface Coord {
     x: number,
@@ -39,7 +40,7 @@ export class CreateServer extends Component {
     }
 
     public getCardOrder() {
-        const cards = this.element!.querySelectorAll("#cardHolder .card");
+        const cards = this.element!.querySelectorAll("#cardHolder .card:not(.addCard)");
         return Array.from(cards).map(x => x.querySelector("h1").innerText);
     }
 
@@ -70,23 +71,12 @@ export class CreateServer extends Component {
             input.addEventListener("change", () => input.removeAttribute("invalid"));
         });
         this.roomName = this.element!.querySelector(`input[name="roomName"]`);
-        this.roomPass = this.element!.querySelector(`input[name="roomPass"]`);
-        // noinspection TypeScriptValidateTypes
-        const passShowBtn = this.roomPass!.parentElement.querySelector<HTMLElement>(".passwordShowBtn");
-        const passInputCallback = () => {
-            passShowBtn.style.display = (!!this.roomPass!.value) ? "block" : "none";
-        };
-        if (this.roomPass) {
-            this.roomPass.addEventListener("keydown", passInputCallback);
-            this.roomPass.addEventListener("keyup", passInputCallback);
-            this.roomPass.addEventListener("keypress", passInputCallback);
-            passShowBtn.querySelector(".innerBtn").addEventListener("mousedown", () => {
-                this.roomPass?.setAttribute("type", "text");
-            });
-            passShowBtn.querySelector(".innerBtn").addEventListener("mouseup", () => {
-                this.roomPass?.setAttribute("type", "password");
-            })
-        }
+        const passwordInput = new PasswordInput(
+            (this.element!.querySelector(`.inputBox[for="password"]`) as HTMLElement),
+            "roomPass");
+        passwordInput.mount().then(() => {
+            this.roomPass = passwordInput.element!.querySelector(`input[name="roomPass"]`);
+        });
         this.element!.querySelector(".inputBox:last-child button").addEventListener("click", () => {
             this.submit();
         });
@@ -251,6 +241,6 @@ export class CreateServer extends Component {
         }
 
         // TODO: Implement creating server
-        console.warn(this.roomName.value, this.roomPass.value, this.getCardOrder());
+        console.warn("Create:", `${this.roomName.value}:${this.roomPass.value}`, this.getCardOrder());
     }
 }

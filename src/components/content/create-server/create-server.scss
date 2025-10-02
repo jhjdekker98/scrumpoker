@@ -1,149 +1,84 @@
-.inputBox {
-  margin-bottom: .5em;
-  max-width: calc(100vw - 4em);
+.content-col {
+  max-width: 1000px;
 
-  &:not(:has(#cardHolder)) {
+  .inputBox {
+    &:has(#cardHolder) {
+      display: block;
+      margin-top: 2em;
+    }
+  }
+
+  #cardHolder {
     display: flex;
-    flex-flow: column wrap;
+    flex-flow: row wrap;
+    gap: 1rem;
     align-items: stretch;
-  }
+    justify-content: flex-start;
 
-  .invalidHint {
-    display: none;
-  }
-
-  &:has([invalid]) {
-    color: var(--error-text-color);
-    input {
-      color: var(--error-text-color);
-      border-color: var(--error-text-color);
-    }
-    .invalidHint {
-      display: inline-block;
-    }
-  }
-
-  span, input {
-    display: block;
-  }
-  span {
-    margin: .75em 0 .25em 2px;
-    font-size: 1.5em;
-
-    &.hint {
-      font-size: 1em;
-      display: inline;
-      text-decoration: underline dotted var(--text-color) 2px;
-    }
-  }
-  input {
-    font-size: 1em;
-    background-color: var(--bg-color-up2);
-    color: var(--text-color);
-    outline: none;
-    border: 1px solid #888; /* TODO: Find better solution for this with multiple styles */
-    padding: 0.5em;
-    border-radius: 6px;
-    flex: 0 1 auto;
-  }
-  button {
-    width: min-content;
-    font-size: 1.25em;
-    padding: .5em .75em;
-    border-radius: 6px;
-    border: 1px outset var(--bg-color-up2);
-    background-color: var(--bg-color-up2);
-    color: var(--text-color);
-    cursor: pointer;
-
-    &:hover {
-      transition-duration: 0.05s;
-    }
-
-    &:active {
-      border: 1px inset var(--bg-color-up1);
-      background-color: var(--bg-color-up1);
-
-      span {
-        transform: translate(1px, 1px);
-      }
-    }
-
-    span {
-      margin: 0;
-    }
-  }
-  .passwordShowBtn {
-    width: 0;
-    height: 0;
-    flex: 0 0 auto;
-    align-self: end;
-    display: none;
-    .innerBtn{
-      width: min-content;
-      transform: translate(calc(-100% - .5em), -200%);
+    .card {
+      width: 6.7em;
+      height: 9.4em; // 5:7 aspect ratio
+      display: flex;
+      flex-flow: column nowrap;
+      align-items: center;
+      border-radius: 0.6rem;
+      background-color: var(--bg-color-up2);
+      border: 1px solid #888; /* TODO: Find better solution for this with multiple styles */
       cursor: pointer;
-    }
-  }
-}
 
-#cardHolder {
-  display: flex;
-  flex-flow: row wrap;
-  gap: 1rem;
-  align-items: stretch;
-  justify-content: flex-start;
+      .textHolder {
+        max-width: 100%;
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
 
-  .card {
-    width: 8em;
-    display: flex;
-    flex-flow: column nowrap;
-    align-items: center;
-    aspect-ratio: 5/7;
-    border-radius: 0.6rem;
-    background-color: var(--bg-color-up2);
-    border: 1px solid #888; /* TODO: Find better solution for this with multiple styles */
-    cursor: pointer;
-
-    .textHolder {
-      max-width: 100%;
-      overflow: hidden;
-
-      h1 {
-        font-size: 3em;
-        display: inline-block;
-        padding: 0.5em;
-        user-select: none;
+        h1 {
+          font-size: 3em;
+          display: inline-block;
+          user-select: none;
+          margin: 0;
+        }
       }
-    }
 
-    .buttonHolder {
-      width: 0;
-      height: 0;
-      align-self: flex-end;
-    }
-    .removeBtn {
-      flex: 1 1 auto;
-      position: relative;
-      top: -1em;
-      left: -1em;
-      width: 2em;
-      height: 2em;
-      border-radius: 8px;
-      background-color: var(--error-color);
-      color: #fff;
-
-      span {
-        display: inline-block;
-        margin: 50%;
-        transform: translate(-50%, -50%);
+      .buttonHolder {
+        width: 0;
+        height: 0;
+        align-self: flex-end;
+        opacity: 0;
+        visibility: hidden;
+        transition: visibility 0s linear 0.5s, opacity 0.5s ease-out;
       }
-    }
+      &:hover .buttonHolder {
+        visibility: visible;
+        opacity: 1;
+        transition: visibility 0s, opacity 0.5s ease-out;
+      }
+      .removeBtn {
+        flex: 1 1 auto;
+        position: relative;
+        top: -1em;
+        left: -1em;
+        width: 2em;
+        height: 2em;
+        border-radius: 8px;
+        background-color: var(--error-color);
+        color: #fff;
 
-    &.addCard {
-      border: 4px dashed var(--header-bg-color);
-      color: var(--header-bg-color);
-      background: none;
+        span {
+          display: inline-block;
+          margin: 50%;
+          transform: translate(-50%, -50%);
+        }
+      }
+
+      &.addCard {
+        border: 4px dashed var(--header-bg-color);
+        margin: -2px;
+        color: var(--header-bg-color);
+        background: none;
+      }
     }
   }
 }
