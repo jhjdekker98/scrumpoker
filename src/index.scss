@@ -4,9 +4,11 @@ body {
   font-family: "Nunito Sans", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
+  min-height: 100vh;
+}
 
-
-  transition-property: background-color, color;
+.themed {
+  transition-property: background-color, color, border, text-decoration;
   transition-duration: 0.4s;
   transition-timing-function: ease-out;
 }

@@ -1,3 +1,42 @@
-<div class="content-col">
+<div class="content-col themed">
     <h1>Create Room</h1>
+    <div class="inputBox">
+        <span>Room name:</span>
+        <input class="themed" type="text" name="roomName" placeholder="My Scrum Poker Room"/>
+        <div class="invalidHint">
+            <p>Room name cannot be empty.</p>
+        </div>
+    </div>
+    <div class="inputBox">
+        <span>Cards:</span>
+        <div id="cardHolder">
+            <div class="card themed">
+                <div class="buttonHolder">
+                    <div class="removeBtn">
+                        <span class="material-symbols-outlined">close</span>
+                    </div>
+                </div>
+                <div class="textHolder">
+                    <h1>1</h1>
+                </div>
+            </div>
+            <div class="card addCard themed">
+                <div class="textHolder">
+                    <h1>+</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="inputBox">
+        <span><span class="hint themed" title="Leave blank for none">Password</span>:</span>
+        <input class="themed" type="password" name="roomPass" placeholder="None"/>
+        <div class="passwordShowBtn">
+            <div class="innerBtn">
+                <span class="material-symbols-outlined">visibility</span>
+            </div>
+        </div>
+    </div>
+    <div class="inputBox">
+        <button class="themed"><span class="material-symbols-outlined">send</span></button>
+    </div>
 </div>

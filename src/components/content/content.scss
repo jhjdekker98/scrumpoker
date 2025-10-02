@@ -9,4 +9,6 @@
   padding: 0.5em 1em;
   margin: 1em;
   flex: 1 0 auto;
+  box-shadow: 0 0 1em -4px var(--shadow-color);
+  border-radius: 8px;
 }

@@ -1,0 +1,53 @@
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  color: var(--text-color);
+  cursor: pointer;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+
+  .modify-card {
+    background-color: var(--bg-color-up1);
+    filter: drop-shadow(0 0 1em var(--shadow-color));
+    border-radius: 1rem;
+    padding: 1em 2em;
+    cursor: auto;
+    font-size: 1.5em;
+
+    div {
+      padding: .5em;
+
+      &:last-child {
+        float: right;
+      }
+    }
+
+    input, button {
+      font-size: 1em;
+      background-color: var(--bg-color-up2);
+      color: var(--text-color);
+      border: 1px solid var(--bg-color-up2);
+      padding: .5em .75em;
+      border-radius: .6rem;
+      outline: none;
+      transition: filter 0.5s ease-out, border-color 0.5s ease-out;
+
+      &:hover {
+        filter: drop-shadow(0 0 8px var(--shadow-color));
+      }
+      &:active, &:focus {
+        filter: drop-shadow(0 0 6px var(--shadow-color));
+        border-color: var(--header-bg-color);
+      }
+    }
+    button {
+      cursor: pointer;
+    }
+  }
+}

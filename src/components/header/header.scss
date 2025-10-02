@@ -5,9 +5,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition-property: background-color, color;
-  transition-duration: 0.4s;
-  transition-timing-function: ease-out;
 
   h2 {
     color: var(--header-text-color);
