@@ -2,6 +2,7 @@ import {Component} from "../../component/component";
 import "./create-server.scss";
 import {ModifyCard} from "./modify-card/modify-card";
 import {PasswordInput} from "../../shared/password-input/password-input";
+import {ViewServer} from "../view-server/view-server";
 
 export interface Coord {
     x: number,
@@ -12,6 +13,8 @@ export interface DragPosition {
     mousePos: Coord,
     offset: Coord
 }
+
+type SubmitSignature = (roomName: string, cards: string[], roomPass?: string) => void;
 
 export class CreateServer extends Component {
     private static readonly GHOST_CSS_PROPS = [
@@ -34,6 +37,7 @@ export class CreateServer extends Component {
     private cardGap: string = "100px";
     private roomName: HTMLInputElement|null = null;
     private roomPass: HTMLInputElement|null = null;
+    private onSubmit: SubmitSignature;
 
     constructor(parent: HTMLElement) {
         super(parent);
@@ -231,6 +235,10 @@ export class CreateServer extends Component {
         };
     }
 
+    public setOnSubmit(onSubmit: SubmitSignature): void {
+        this.onSubmit = onSubmit;
+    }
+
     private submit(): void {
         if (!this.roomName || !this.roomPass) {
             return;
@@ -240,7 +248,10 @@ export class CreateServer extends Component {
             return;
         }
 
-        // TODO: Implement creating server
-        console.warn("Create:", `${this.roomName.value}:${this.roomPass.value}`, this.getCardOrder());
+        if (!this.onSubmit) {
+            console.error("Callback for CreateServer::onSubmit not set");
+            return;
+        }
+        this.onSubmit(this.roomName.value, this.getCardOrder(), this.roomPass.value);
     }
 }

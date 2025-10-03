@@ -4,11 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "clean": "rm -rf dist && mkdir dist",
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "npm run dev"
+    "dev:client": "vite",
+    "build:client": "vite build",
+    "preview:client": "vite preview",
+    "build:ws": "vite build --config ws-server/vite.config.js",
+    "watch:ws": "vite build --watch --config ws-server/vite.config.js",
+    "start:ws": "node dist/ws-server/index.js",
+    "dev": "concurrently \"npm run build:ws && npm run start:ws\" \"npm run dev:client\""
   },
   "repository": {
     "type": "git",
@@ -23,10 +25,14 @@
   "homepage": "https://github.com/jhjdekker98/scrumpoker#readme",
   "dependencies": {
     "@types/node": "^24.6.1",
-    "concurrently": "^9.2.1",
-    "live-server": "^1.2.0",
+    "@types/ws": "^8.18.1",
+    "capnweb": "^0.1.0",
     "sass": "^1.93.2",
     "typescript": "^5.9.3",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
