@@ -1,15 +1,30 @@
 import {RpcTarget} from "capnweb";
 import {Room} from "./model/room";
+import {ERR_ILLEGAL_USERNAME, ERR_INVALID_CARD, ERR_INVALID_TOKEN, ERR_ROOM_NOT_FOUND} from "./model/constants";
 
 export interface Listener extends RpcTarget {
-    onMessage(msg: string): Promise<void>;
+    onUserJoined(username: string): Promise<void>;
+    onUserLeft(username: string): Promise<void>;
+    onIssueChanged(issue: string): Promise<void>;
+    onUserChoseCard(username: string, card: string): Promise<void>;
 }
 
 // Interface for the API below
 export interface ScrumPokerApi {
-    createRoom(roomName: string, cards: string[], listener: Listener, roomPass?: string): number;
+    // Init requests
+    createRoom(roomName: string, cards: string[], listener: Listener, roomPass?: string): {roomId: number, token: string};
     joinRoom(roomId: number, username: string, listener: Listener, roomPass?: string): string;
+
+    // Authed requests
     leaveRoom(roomId: number, authToken: string): void;
+    getRoomName(roomId: number, authToken: string): string;
+    getRoomCards(roomId: number, authToken: string): string[];
+    getRoomUsers(roomId: number, authToken: string): string[];
+    setRoomIssue(roomId: number, issue: string, authToken: string): void;
+    getRoomIssue(roomId: number, authToken: string): string | undefined;
+    chooseCard(roomId: number, card: string, authToken: string): void;
+
+    // Public requests
 }
 
 // The API exposed by the server
@@ -18,15 +33,15 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
     private static readonly ADMIN_NAME = "Admin";
     private readonly rooms: Map<number, Room> = new Map<number, Room>();
 
-    private async broadcastMessage(room: Room, msg: string) {
+    private async broadcastMessage(room: Room, method: keyof Listener, ...args: any[]) {
         await Promise.all(
             [...room.listeners.values()].map(listener =>
-                listener.onMessage(msg).catch(err => console.error(err))
+                (listener[method] as Function)(...args).catch(err => console.error(err))
             )
         );
     }
 
-    createRoom(roomName: string, cards: string[], listener: Listener, roomPass?: string): number {
+    createRoom(roomName: string, cards: string[], listener: Listener, roomPass?: string): {roomId: number, token: string} {
         let roomId;
         do {
             roomId = Math.floor(Math.random() * (ScrumPokerApiImpl.ROOM_ID_MAX + 1));
@@ -45,32 +60,78 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         room.listeners.set(token, (listener as any).dup());
 
         this.rooms.set(roomId, room);
-        return roomId;
+        return { roomId, token };
     }
 
     joinRoom(roomId: number, username: string, listener: Listener, roomPass?: string): string {
         const room = this.rooms.get(roomId);
-        if (!room || (room.roomPass && room.roomPass !== roomPass)) throw new Error("Room not found");
+        if (!room || (room.roomPass && room.roomPass !== roomPass)) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
+        if (username === ScrumPokerApiImpl.ADMIN_NAME) throw new Error(ERR_ILLEGAL_USERNAME(username));
 
         const token = this.generateToken();
         room.users.set(token, username);
         room.listeners.set(token, (listener as any).dup());
 
-        this.broadcastMessage(room, "user '" + username + "' joined the Room.");
+        this.broadcastMessage(room, "onUserJoined", username);
         return token;
     }
 
     leaveRoom(roomId: number, authToken: string): void {
         const room = this.rooms.get(roomId);
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
 
         const username = room.users.get(authToken);
-        if (!username) throw new Error("Invalid token");
+        if (!username) throw new Error(ERR_INVALID_TOKEN());
 
         room.users.delete(authToken);
         room.listeners.delete(authToken);
 
-        this.broadcastMessage(room, "user '" + username + "' left the Room.");
+        this.broadcastMessage(room, "onUserLeft", username);
+    }
+
+    getRoomName(roomId: number, authToken: string): string {
+        const room = this.rooms.get(roomId);
+        if (!room) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
+        if (!room.users.has(authToken)) throw new Error(ERR_INVALID_TOKEN());
+        return room.roomName;
+    }
+
+    getRoomCards(roomId: number, authToken: string): string[] {
+        const room = this.rooms.get(roomId);
+        if (!room) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
+        if (!room.users.has(authToken)) throw new Error(ERR_INVALID_TOKEN());
+        return room.cards;
+    }
+
+    getRoomUsers(roomId: number, authToken: string): string[] {
+        const room = this.rooms.get(roomId);
+        if (!room) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
+        if (!room.users.has(authToken)) throw new Error(ERR_INVALID_TOKEN());
+        return Array.from(room.users.values()).filter(user => user !== ScrumPokerApiImpl.ADMIN_NAME);
+    }
+
+    setRoomIssue(roomId: number, issue: string, authToken: string): void {
+        const room = this.rooms.get(roomId);
+        if (!room) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
+        if (ScrumPokerApiImpl.ADMIN_NAME !== room.users.get(authToken)) throw new Error(ERR_INVALID_TOKEN());
+        room.issue = issue;
+        this.broadcastMessage(room, "onIssueChanged", issue);
+    }
+
+    getRoomIssue(roomId: number, authToken: string): string | undefined {
+        const room = this.rooms.get(roomId);
+        if (!room) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
+        if (!room.users.has(authToken)) throw new Error(ERR_INVALID_TOKEN());
+        return room.issue;
+    }
+
+    chooseCard(roomId: number, card: string, authToken: string): void {
+        const room = this.rooms.get(roomId);
+        if (!room) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
+        const username = room.users.get(authToken);
+        if (!username) throw new Error(ERR_INVALID_TOKEN());
+        if (!room.cards.includes(card)) throw new Error(ERR_INVALID_CARD(card));
+        this.broadcastMessage(room, "onUserChoseCard", username, card);
     }
 
     connClosed(ws: WebSocket): void {

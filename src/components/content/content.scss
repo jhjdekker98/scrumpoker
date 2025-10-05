@@ -1,16 +1,22 @@
 .content {
   display: flex;
   flex-flow: row wrap;
+  width: 100vw;
 }
 
-.content-col {
+.content-col, .content-row {
   background-color: var(--bg-color-up1);
   color: var(--text-color);
   padding: 0.5em 1em;
   margin: 1em;
-  flex: 1 0 auto;
   box-shadow: 0 0 1em -4px var(--shadow-color);
   border-radius: 8px;
+}
+.content-col {
+  flex: 1 0 auto;
+}
+.content-row {
+  flex: 0 0 100%;
 }
 
 .inputBox {
@@ -39,7 +45,7 @@
     }
   }
 
-  span, input {
+  span, input, textarea {
     display: block;
   }
   span {
@@ -49,6 +55,11 @@
       font-size: 1em;
       display: inline;
       text-decoration: underline dotted var(--text-color) 2px;
+    }
+
+    span {
+      display: inline;
+      font-size: 1em;
     }
   }
 
@@ -61,6 +72,15 @@
     padding: 0.5em;
     border-radius: 6px;
     flex: 0 1 auto;
+  }
+
+  div.resizer {
+    font-size: 1em;
+    width: auto;
+    display: inline-block;
+    visibility: hidden;
+    position: fixed;
+    padding: 0.5em;
   }
 
   button {

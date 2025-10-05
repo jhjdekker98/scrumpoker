@@ -1,3 +1,15 @@
 div#viewServer {
   color: var(--text-color);
+
+  .issueInput {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: end;
+    gap: 4px;
+
+    .inputBox button {
+      padding: 0.2em 0.5em;
+      transform: translateY(2px);
+    }
+  }
 }
