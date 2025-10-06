@@ -179,6 +179,14 @@ export class CardList extends Component {
         allCards[index].querySelector("h1").innerText = value;
     }
 
+    public removeCard(index: number): void {
+        const allCards = this.element!.querySelectorAll<HTMLDivElement>(".card");
+        if (index < 0 || index >= allCards.length) {
+            throw new Error(`Tried to remove non-existant card with index" ${index}`);
+        }
+        allCards[index].remove();
+    }
+
     public modifyCards(value: string): void {
         this.element!.querySelectorAll<HTMLDivElement>(".card").forEach(elem =>
             elem.querySelector("h1").innerText = value);

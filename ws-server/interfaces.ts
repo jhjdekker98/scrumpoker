@@ -1,6 +1,7 @@
 import {RpcTarget} from "capnweb";
 import {Room} from "./model/room";
 import {ERR_ILLEGAL_USERNAME, ERR_INVALID_CARD, ERR_INVALID_TOKEN, ERR_ROOM_NOT_FOUND} from "./model/constants";
+import {BiMap} from "./util/BiMap";
 
 export interface Listener extends RpcTarget {
     onUserJoined(username: string): Promise<void>;
@@ -27,11 +28,23 @@ export interface ScrumPokerApi {
     // Public requests
 }
 
+interface UserInfo {
+    roomId: number,
+    token: string
+}
+
 // The API exposed by the server
 export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
     private static readonly ROOM_ID_MAX = 9999;
     private static readonly ADMIN_NAME = "Admin";
     private readonly rooms: Map<number, Room> = new Map<number, Room>();
+    private readonly wsIdQueue: string[] = [];
+    private readonly wsUserBiMap: BiMap<string, UserInfo> = new BiMap<string, UserInfo>();
+
+    public pushWs(wsId: string): void {
+        // TODO: Refactor this into something more secure - timing-based assignment over the internet is a terrible idea
+        this.wsIdQueue.push(wsId);
+    }
 
     private async broadcastMessage(room: Room, method: keyof Listener, ...args: any[]) {
         await Promise.all(
@@ -58,6 +71,10 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         const token = this.generateToken();
         room.users.set(token, ScrumPokerApiImpl.ADMIN_NAME);
         room.listeners.set(token, (listener as any).dup());
+        if (this.wsIdQueue.length === 0) {
+            throw new Error("Tried to initialize user before WebSocket was registered!");
+        }
+        this.wsUserBiMap.set(this.wsIdQueue.shift()!, {roomId, token});
 
         this.rooms.set(roomId, room);
         return { roomId, token };
@@ -71,6 +88,10 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         const token = this.generateToken();
         room.users.set(token, username);
         room.listeners.set(token, (listener as any).dup());
+        if (this.wsIdQueue.length === 0) {
+            throw new Error("Tried to initialize user before WebSocket was registered!");
+        }
+        this.wsUserBiMap.set(this.wsIdQueue.shift()!, {roomId, token});
 
         this.broadcastMessage(room, "onUserJoined", username);
         return token;
@@ -85,6 +106,11 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
 
         room.users.delete(authToken);
         room.listeners.delete(authToken);
+        const userInfo = this.wsUserBiMap.findValue((userInfo: UserInfo) => userInfo.token === authToken);
+        if (!userInfo) {
+            throw new Error("Could not retrieve user info from token");
+        }
+        this.wsUserBiMap.deleteValue(userInfo);
 
         this.broadcastMessage(room, "onUserLeft", username);
     }
@@ -134,10 +160,12 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         this.broadcastMessage(room, "onUserChoseCard", username, card);
     }
 
-    connClosed(ws: WebSocket): void {
-        // TODO: Find user associated with this WebSocket
-        //  then get that user's room and authToken
-        //  then call leaveRoom with that user's room and authToken
+    connClosed(wsId: string): void {
+        const userInfo = this.wsUserBiMap.get(wsId);
+        if (!userInfo) {
+            throw new Error("Could not retrieve user info from WebSocket ID");
+        }
+        this.leaveRoom(userInfo.roomId, userInfo.token);
     }
 
     private generateToken(): string {

@@ -48,9 +48,10 @@ export class UserChoices extends Component {
         if (!this.users.includes(username)) {
             throw new Error(`Tried to remove user ${username} who is not in this Room`);
         }
-        this.users.splice(this.users.indexOf(username), 1);
+        const userIndex = this.users.indexOf(username);
+        this.users.splice(userIndex, 1);
         this.userChoices.delete(username);
-        // TODO: Update UI
+        this.cardList!.removeCard(userIndex);
     }
 
     public reset(): void {

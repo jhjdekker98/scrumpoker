@@ -1,7 +1,7 @@
 import http, {IncomingMessage, ServerResponse} from "node:http";
 import { WebSocketServer } from "ws";
-import { newWebSocketRpcSession, nodeHttpBatchRpcResponse } from "capnweb";
-import { ScrumPokerApiImpl } from "./interfaces";
+import {newWebSocketRpcSession, nodeHttpBatchRpcResponse, RpcStub} from "capnweb";
+import {ScrumPokerApi, ScrumPokerApiImpl} from "./interfaces";
 import {PORT_NUMBER} from "./model/constants";
 
 /**
@@ -10,6 +10,7 @@ import {PORT_NUMBER} from "./model/constants";
  */
 
 const api = new ScrumPokerApiImpl();
+const wsToId = new Map<WebSocket, string>();
 
 // Run standard HTTP server on a port.
 const httpServer = http.createServer(async (request: IncomingMessage, response: ServerResponse) => {
@@ -45,9 +46,13 @@ wsServer.on("connection", (ws) => {
     console.log("New connection incoming!");
     (ws as WebSocket).onclose = () => {
         console.log("Connection closed!");
-        api.connClosed(ws);
+        const wsId = wsToId.get(ws)!;
+        api.connClosed(wsId);
     }
     newWebSocketRpcSession(ws as any, api);
+    const wsId = crypto.randomUUID();
+    wsToId.set(ws, wsId);
+    api.pushWs(wsId);
 });
 
 httpServer.once("listening", () => {
