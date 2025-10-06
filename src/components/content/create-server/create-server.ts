@@ -23,7 +23,7 @@ export class CreateServer extends Component {
     protected async onMount() {
         super.onMount();
         const cardHolderTemplate = this.element!.querySelector("div#cardHolder");
-        this.cardList = new CardList(cardHolderTemplate.parentElement!, true);
+        this.cardList = new CardList(cardHolderTemplate.parentElement!);
         cardHolderTemplate.remove();
         await this.cardList.mount();
 
@@ -57,8 +57,7 @@ export class CreateServer extends Component {
         }
 
         if (!this.onSubmit) {
-            console.error("Callback for CreateServer::onSubmit not set");
-            return;
+            throw new Error("Callback for CreateServer::onSubmit not set");
         }
         this.onSubmit(this.roomName.value, this.getCardOrder(), this.roomPass.value);
     }

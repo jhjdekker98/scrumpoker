@@ -27,16 +27,16 @@ export abstract class Component {
     public async mount(): Promise<void> {
         await this.loadTemplate();
         if (this.element) this.parent.appendChild(this.element);
-        this.onMount();
+        await this.onMount();
     }
 
-    public unmount(): void {
+    public async unmount(): Promise<void> {
         if (this.element && this.element.parentElement) {
             this.element.parentElement.removeChild(this.element);
             this.element = null;
         }
 
-        this.onUnmount();
+        await this.onUnmount();
     }
 
     protected onMount(): void {}

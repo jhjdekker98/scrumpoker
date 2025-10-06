@@ -12,6 +12,11 @@ interface DragPosition {
     offset: Coord
 }
 
+interface CardListOptions {
+    modify: boolean,
+    add: boolean
+}
+
 type SelectSignature = (card: string) => void;
 
 export class CardList extends Component {
@@ -35,16 +40,21 @@ export class CardList extends Component {
         "justify-content",
         "align-items"];
     private static readonly DRAG_DIST_MIN = 6;
-    private readonly modifyMode: boolean;
+    private readonly options: CardListOptions;
     private readonly cards: string[];
+    private cardTemplate: HTMLDivElement;
     private dragStart: DragPosition|null = null;
     private dragTarget: HTMLElement|null = null;
     private cardGap: string = "100px";
     private onSelect: SelectSignature;
+    private abortController: AbortController = new AbortController();
 
-    constructor(parent: HTMLElement, modifyMode: boolean = false, cards?: string[]) {
+    constructor(parent: HTMLElement, cards?: string[], options?: CardListOptions) {
         super(parent);
-        this.modifyMode = modifyMode;
+        this.options = options || {
+            modify: true,
+            add: true
+        };
         this.cards = cards || CardList.DEFAULT_CARDS;
     }
 
@@ -53,22 +63,30 @@ export class CardList extends Component {
     }
 
     public removeHighlights(): void {
-        Array.from(document.querySelectorAll<HTMLDivElement>(".card"))
+        Array.from(this.element!.querySelectorAll<HTMLDivElement>(".card"))
             .forEach(card => card.removeAttribute(CardList.HIGHLIGHT_ATTRIBUTE));
     }
 
     // TODO: Figure out value-safety for highlight param
-    public highlightCard(card: string, highlight: string): void {
-        const cardElem = Array.from(document.querySelectorAll<HTMLDivElement>(".card"))
-            .find(elem => elem.querySelector("h1").innerText === card);
-        if (!cardElem) {
-            throw new Error("Could not highlight non-existant card: " + card);
+    public highlightCardByIndex(index: number, highlight: string): void {
+        const allCards = this.element!.querySelectorAll<HTMLDivElement>(".card");
+        if (index < 0 || index >= allCards.length) {
+            throw new Error(`Tried to access non-existent card with index ${index}`);
         }
-        cardElem.setAttribute(CardList.HIGHLIGHT_ATTRIBUTE, highlight);
+        allCards[index].setAttribute(CardList.HIGHLIGHT_ATTRIBUTE, highlight);
+    }
+
+    public highlightCardByValue(card: string, highlight: string): void {
+        const cardIndex = Array.from(this.element!.querySelectorAll<HTMLDivElement>(".card"))
+            .findIndex(elem => elem.querySelector("h1").innerText === card);
+        if (cardIndex === -1) {
+            throw new Error(`Could not highlight non-existent card: ${card}`);
+        }
+        this.highlightCardByIndex(cardIndex, highlight);
     }
 
     public cardsInactive(): void {
-        Array.from(document.querySelectorAll<HTMLDivElement>(".card")).forEach(elem => {
+        Array.from(this.element!.querySelectorAll<HTMLDivElement>(".card")).forEach(elem => {
             elem.style.pointerEvents = "none";
             elem.style.opacity = "0.8";
             elem.querySelector("h1").style.opacity = "0.5";
@@ -76,7 +94,7 @@ export class CardList extends Component {
     }
 
     public cardsActive(): void {
-        Array.from(document.querySelectorAll<HTMLDivElement>(".card")).forEach(elem => {
+        Array.from(this.element!.querySelectorAll<HTMLDivElement>(".card")).forEach(elem => {
             elem.style.pointerEvents = "auto";
             elem.style.opacity = "1";
             elem.querySelector("h1").style.opacity = "1";
@@ -85,28 +103,28 @@ export class CardList extends Component {
 
     protected onMount() {
         super.onMount();
-        const cardHolder = this.element!;
-        const cardHolderComputedStyle = window.getComputedStyle(cardHolder);
+        const cardHolderComputedStyle = window.getComputedStyle(this.element!);
         const cardHolderGap = parseFloat(cardHolderComputedStyle.columnGap || cardHolderComputedStyle.gap || '0');
 
         // Init cards
-        const cardTemplate = cardHolder.querySelector(".card");
+        const cardTemplate = this.element!.querySelector(".card");
+        this.cardTemplate = (cardTemplate.cloneNode(true) as HTMLDivElement);
         this.cardGap = Math.round(cardTemplate.getBoundingClientRect().width + cardHolderGap) + "px";
-        const addCard = cardHolder.querySelector(".card.addCard");
-        this.cards.forEach(text => this.createNewCard(text, cardTemplate, cardHolder, addCard));
+        const addCard = this.element!.querySelector(".card.addCard");
+        this.cards.forEach(text => this.createNewCard(text, addCard));
         cardTemplate.remove();
 
-        if (this.modifyMode) {
+        if (this.options.modify) {
             this.addDragHandlers();
         } else {
             document.querySelectorAll<HTMLDivElement>(".card .buttonHolder")
                 .forEach(elem => elem.remove());
         }
 
-        if (this.modifyMode) {
+        if (this.options.add) {
             addCard.addEventListener("click", () => {
                 const modifyCard = new ModifyCard(document.body, "Add card", (val) => {
-                    this.createNewCard(val, cardTemplate, cardHolder, addCard);
+                    this.createNewCard(val, addCard);
                 })
                 modifyCard.mount();
             });
@@ -115,11 +133,16 @@ export class CardList extends Component {
         }
     }
 
-    private createNewCard(text: string, cardTemplate: Node, cardHolder: Node, beforeElement: Node) {
-        const newCard = (cardTemplate.cloneNode(true) as Element);
+    protected onUnmount() {
+        super.onUnmount();
+        this.abortController.abort();
+    }
+
+    public createNewCard(text: string, beforeElement?: Node): HTMLDivElement {
+        const newCard = (this.cardTemplate.cloneNode(true) as HTMLDivElement);
         newCard.querySelector("h1").innerText = text;
 
-        if (this.modifyMode) {
+        if (this.options.modify) {
             newCard.addEventListener("click", () => {
                 const modifyCard = new ModifyCard(document.body, "Modify card", (val) => {
                     newCard.querySelector("h1").innerText = val;
@@ -133,20 +156,42 @@ export class CardList extends Component {
         } else {
             newCard.addEventListener("click", () => {
                 if (!this.onSelect) {
-                    console.error("Callback for CardList::onSelect not set");
-                    return;
+                    throw new Error("Callback for CardList::onSelect not set");
                 }
                 this.onSelect(newCard.querySelector("h1").innerText);
             })
         }
 
-        cardHolder.insertBefore(newCard, beforeElement);
+        if (beforeElement) {
+            this.element!.insertBefore(newCard, beforeElement);
+        } else {
+            this.element!.appendChild(newCard);
+        }
+
+        return newCard;
+    }
+
+    public modifyCard(index: number, value: string): void {
+        const allCards = this.element!.querySelectorAll<HTMLDivElement>(".card");
+        if (index < 0 || index >= allCards.length) {
+            throw new Error(`Tried to access non-existant card with index" ${index}`);
+        }
+        allCards[index].querySelector("h1").innerText = value;
+    }
+
+    public modifyCards(value: string): void {
+        this.element!.querySelectorAll<HTMLDivElement>(".card").forEach(elem =>
+            elem.querySelector("h1").innerText = value);
+    }
+
+    public cardCount(): number {
+        return this.element!.querySelectorAll<HTMLDivElement>(".card").length;
     }
 
     private addDragHandlers() {
         document.body.addEventListener("mouseup", (e) => {
             this.dragEnd();
-        });
+        }, { signal: this.abortController.signal });
 
         document.body.addEventListener("mousedown", (e) => {
             if (!(e.target instanceof HTMLElement)) return;
@@ -163,7 +208,7 @@ export class CardList extends Component {
                     y: e.clientY - cardElem.getBoundingClientRect().top
                 }
             };
-        });
+        }, { signal: this.abortController.signal });
 
         document.body.addEventListener("mousemove", (e) => {
             if (e.buttons === 0) {
@@ -184,7 +229,7 @@ export class CardList extends Component {
                 moveHolder.style.top = elemPos.y + "px";
             });
 
-            const cards = Array.from(this.element!.querySelectorAll<HTMLElement>("#cardHolder .card"))
+            const cards = Array.from(this.element!.querySelectorAll<HTMLElement>(".card"))
                 .filter(c => c !== this.dragTarget)
                 .sort((a, b) => {
                     const centerA = this.getElementCenter(a);
@@ -204,7 +249,7 @@ export class CardList extends Component {
             }
             cards.forEach(card => card.style.marginLeft = "");
             cards[gapCardIndex].style.marginLeft = this.cardGap;
-        });
+        }, { signal: this.abortController.signal });
     }
 
     private dragEnd(): void {
@@ -212,7 +257,7 @@ export class CardList extends Component {
             return;
         }
         this.dragStart = null;
-        const cards = Array.from(this.element!.querySelectorAll<HTMLElement>("#cardHolder .card"));
+        const cards = Array.from(this.element!.querySelectorAll<HTMLElement>(".card"));
         for (const card of cards) {
             if (card.style.marginLeft === this.cardGap) {
                 card.style.marginLeft = "";

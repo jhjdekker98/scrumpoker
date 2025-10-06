@@ -16,7 +16,7 @@
   flex: 1 0 auto;
 }
 .content-row {
-  flex: 0 0 100%;
+  flex: 0 0 calc(100% - 4em);
 }
 
 .inputBox {

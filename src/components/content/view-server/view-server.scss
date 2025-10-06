@@ -12,4 +12,11 @@ div#viewServer {
       transform: translateY(2px);
     }
   }
+
+  span.userTag {
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+    text-wrap: nowrap;
+    max-width: calc(100% - 12px);
+  }
 }

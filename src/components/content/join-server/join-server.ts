@@ -55,8 +55,7 @@ export class JoinServer extends Component {
         }
 
         if (!this.onSubmit) {
-            console.error("Callback for JoinServer::onSubmit not set");
-            return;
+            throw new Error("Callback for JoinServer::onSubmit not set");
         }
         this.onSubmit(parseInt(this.roomId.value), this.username.value, this.roomPass.value);
     }
