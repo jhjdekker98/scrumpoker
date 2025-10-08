@@ -1,27 +1,22 @@
-const templates = import.meta.glob("/components/**/*.html", { as: "raw" });
-
-
 export abstract class Component {
     public element: HTMLElement | null = null;
+    private templateLoaded: boolean = false;
 
     constructor(protected parent: HTMLElement) {}
 
+    static template: string;
+
     protected async loadTemplate(): Promise<void> {
-        const classname = this.getFilenameForClassname(this.constructor.name);
-
-        const match = Object.entries(templates).find(([path, _]) =>
-            path.endsWith(`/${classname}.html`)
-        );
-
-        if (!match) {
-            console.warn(`Template not found for ${classname}`);
+        if (this.templateLoaded) return;
+        const html = (this.constructor as typeof Component).template;
+        if (!html) {
+            console.error(`Template not found on static property for ${this.constructor.name}`);
             return;
         }
-
-        const html = await match[1]();
         const template = document.createElement("template");
         template.innerHTML = html.trim();
         this.element = template.content.firstElementChild as HTMLElement;
+        this.templateLoaded = true;
     }
 
     public async mount(): Promise<void> {

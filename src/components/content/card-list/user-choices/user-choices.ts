@@ -1,4 +1,5 @@
 import "./user-choices.scss";
+import UserChoicesTemplate from "./user-choices.html?raw";
 import {Component} from "../../../component/component";
 import {CardList} from "../card-list";
 
@@ -7,6 +8,8 @@ export class UserChoices extends Component {
     private readonly users: string[] = [];
     private cardList?: CardList;
     private mounted: boolean = false;
+
+    static template = UserChoicesTemplate;
 
     constructor(parent: HTMLElement, users: string[]) {
         super(parent);

@@ -1,5 +1,6 @@
-import {Component} from "../../component/component";
 import "./create-server.scss";
+import CreateServerTemplate from "./create-server.html?raw";
+import {Component} from "../../component/component";
 import {PasswordInput} from "../../shared/password-input/password-input";
 import {CardList} from "../card-list/card-list";
 
@@ -11,7 +12,9 @@ export class CreateServer extends Component {
     private cardList?: CardList;
     private onSubmit: SubmitSignature;
 
-    constructor(parent: HTMLElement) {
+    static template = CreateServerTemplate;
+
+        constructor(parent: HTMLElement) {
         super(parent);
     }
 

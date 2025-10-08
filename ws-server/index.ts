@@ -1,8 +1,9 @@
 import http, {IncomingMessage, ServerResponse} from "node:http";
 import { WebSocketServer } from "ws";
 import {newWebSocketRpcSession, nodeHttpBatchRpcResponse, RpcStub} from "capnweb";
-import {ScrumPokerApi, ScrumPokerApiImpl} from "./interfaces";
-import {PORT_NUMBER} from "./model/constants";
+import {ScrumPokerApiImpl} from "./interfaces";
+import { v4 as uuid } from "uuid";
+import { config } from "../envloader";
 
 /**
  * Hugely inspired by (taken from) c43721's cap'n web example client/server:
@@ -40,23 +41,22 @@ const httpServer = http.createServer(async (request: IncomingMessage, response: 
 
 // Arrange to handle WebSockets as well, using the `ws` package.
 const wsServer = new WebSocketServer({ server: httpServer });
-wsServer.on("connection", (ws) => {
+wsServer.on("connection", (ws, req) => {
     // The `as Websocket` here is because the `ws` module seems to have its own `WebSocket` type declaration that is
     // incompatible with the standard one. In practice, though, they are compatible enough for Cap'n Web.
-    console.log("New connection incoming!");
     (ws as WebSocket).onclose = () => {
-        console.log("Connection closed!");
         const wsId = wsToId.get(ws)!;
         api.connClosed(wsId);
     }
+    const sessionId = req.url!.split("?s=")[1];
     newWebSocketRpcSession(ws as any, api);
-    const wsId = crypto.randomUUID();
+    const wsId = uuid();
     wsToId.set(ws, wsId);
-    api.pushWs(wsId);
+    api.pushWs(sessionId, wsId);
 });
 
 httpServer.once("listening", () => {
-    console.log(`WebSocket RPC server listening on http://localhost:${PORT_NUMBER}`);
+    console.log(`WebSocket RPC server listening on http://localhost:${config.port}`);
 });
 
-httpServer.listen(PORT_NUMBER);
+httpServer.listen(config.port);

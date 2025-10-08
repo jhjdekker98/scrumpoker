@@ -1,11 +1,13 @@
 import "./view-client.scss";
+import ViewClientTemplate from "./view-client.html?raw";
 import {Component} from "../../component/component";
 import {newWebSocketRpcSession, RpcStub} from "capnweb";
 import {ScrumPokerApi} from "../../../../ws-server/interfaces";
-import {PORT_NUMBER} from "../../../../ws-server/model/constants";
 import {CardList} from "../card-list/card-list";
 import {ListenerImpl} from "../../../model/ListenerImpl";
 import {UserChoices} from "../card-list/user-choices/user-choices";
+import { v4 as uuid } from "uuid";
+import { config } from "../../../../envloader";
 
 export class ViewClient extends Component {
 
@@ -20,6 +22,9 @@ export class ViewClient extends Component {
     private cardList?: CardList;
     private userList?: HTMLUListElement;
     private userChoices?: UserChoices;
+    private didInit: boolean = false;
+
+    static template = ViewClientTemplate;
 
     constructor(parent: HTMLElement, roomId: number, username: string, roomPass?: string, showCards: boolean = true) {
         super(parent);
@@ -62,9 +67,10 @@ export class ViewClient extends Component {
     }
 
     // --- Local methods ---
-    private async init() {
-        // TODO: Make URL configurable
-        this.api = newWebSocketRpcSession<ScrumPokerApi>(`http://localhost:${PORT_NUMBER}/api`);
+    public async init() {
+        await this.loadTemplate();
+        const sessionId = uuid().replace("-", "");
+        this.api = newWebSocketRpcSession<ScrumPokerApi>(`${config.apiUrl()}/api?s=${sessionId}`);
         const listener = new ListenerImpl({
             onUserChoseCard: this.handleUserChoseCard.bind(this),
             onUserJoined: this.handleUserJoined.bind(this),
@@ -72,9 +78,10 @@ export class ViewClient extends Component {
             onIssueChanged: this.handleIssueChanged.bind(this)
         });
 
-        this.authToken = await this.api.joinRoom(this.roomId, this.username, listener, this.roomPass);
+        this.authToken = await this.api.joinRoom(this.roomId, this.username, listener, sessionId, this.roomPass);
         this.roomName = await this.api.getRoomName(this.roomId, this.authToken);
         this.roomUsers = await this.api.getRoomUsers(this.roomId, this.authToken);
+        this.didInit = true;
     }
 
     private async onCardSelected(card: string) {
@@ -90,8 +97,10 @@ export class ViewClient extends Component {
     }
 
     protected async onMount() {
+        if (!this.didInit) {
+            throw new Error("Tried to mount ViewClient before initialization");
+        }
         super.onMount();
-        await this.init();
 
         const cards = await this.api!.getRoomCards(this.roomId, this.authToken!);
         const cardHolderTemplate = this.element!.querySelector("div#cardHolder");

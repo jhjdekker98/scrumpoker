@@ -13,8 +13,8 @@ export interface Listener extends RpcTarget {
 // Interface for the API below
 export interface ScrumPokerApi {
     // Init requests
-    createRoom(roomName: string, cards: string[], listener: Listener, roomPass?: string): {roomId: number, token: string};
-    joinRoom(roomId: number, username: string, listener: Listener, roomPass?: string): string;
+    createRoom(roomName: string, cards: string[], listener: Listener, sessionId: string, roomPass?: string): {roomId: number, token: string};
+    joinRoom(roomId: number, username: string, listener: Listener, sessionId: string, roomPass?: string): string;
 
     // Authed requests
     leaveRoom(roomId: number, authToken: string): void;
@@ -38,12 +38,11 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
     private static readonly ROOM_ID_MAX = 9999;
     private static readonly ADMIN_NAME = "Admin";
     private readonly rooms: Map<number, Room> = new Map<number, Room>();
-    private readonly wsIdQueue: string[] = [];
+    private readonly sessionToWs: Map<string, string> = new Map<string, string>(); // sessionId -> wsId
     private readonly wsUserBiMap: BiMap<string, UserInfo> = new BiMap<string, UserInfo>();
 
-    public pushWs(wsId: string): void {
-        // TODO: Refactor this into something more secure - timing-based assignment over the internet is a terrible idea
-        this.wsIdQueue.push(wsId);
+    public pushWs(sessionId: string, wsId: string): void {
+        this.sessionToWs.set(sessionId, wsId);
     }
 
     private async broadcastMessage(room: Room, method: keyof Listener, ...args: any[]) {
@@ -54,7 +53,7 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         );
     }
 
-    createRoom(roomName: string, cards: string[], listener: Listener, roomPass?: string): {roomId: number, token: string} {
+    createRoom(roomName: string, cards: string[], listener: Listener, sessionId: string, roomPass?: string): {roomId: number, token: string} {
         let roomId;
         do {
             roomId = Math.floor(Math.random() * (ScrumPokerApiImpl.ROOM_ID_MAX + 1));
@@ -71,16 +70,14 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         const token = this.generateToken();
         room.users.set(token, ScrumPokerApiImpl.ADMIN_NAME);
         room.listeners.set(token, (listener as any).dup());
-        if (this.wsIdQueue.length === 0) {
-            throw new Error("Tried to initialize user before WebSocket was registered!");
-        }
-        this.wsUserBiMap.set(this.wsIdQueue.shift()!, {roomId, token});
+        if (!this.sessionToWs.has(sessionId)) throw new Error("Tried to initialize user before WebSocket was registered!");
+        this.wsUserBiMap.set(this.sessionToWs.get(sessionId)!, {roomId, token});
 
         this.rooms.set(roomId, room);
         return { roomId, token };
     }
 
-    joinRoom(roomId: number, username: string, listener: Listener, roomPass?: string): string {
+    joinRoom(roomId: number, username: string, listener: Listener, sessionId: string, roomPass?: string): string {
         const room = this.rooms.get(roomId);
         if (!room || (room.roomPass && room.roomPass !== roomPass)) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
         if (username === ScrumPokerApiImpl.ADMIN_NAME) throw new Error(ERR_ILLEGAL_USERNAME(username));
@@ -88,10 +85,8 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         const token = this.generateToken();
         room.users.set(token, username);
         room.listeners.set(token, (listener as any).dup());
-        if (this.wsIdQueue.length === 0) {
-            throw new Error("Tried to initialize user before WebSocket was registered!");
-        }
-        this.wsUserBiMap.set(this.wsIdQueue.shift()!, {roomId, token});
+        if (!this.sessionToWs.has(sessionId)) throw new Error("Tried to initialize user before WebSocket was registered!");
+        this.wsUserBiMap.set(this.sessionToWs.get(sessionId)!, {roomId, token});
 
         this.broadcastMessage(room, "onUserJoined", username);
         return token;
@@ -111,6 +106,10 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
             throw new Error("Could not retrieve user info from token");
         }
         this.wsUserBiMap.deleteValue(userInfo);
+
+        if (room.users.size === 0) {
+            this.rooms.delete(roomId);
+        }
 
         this.broadcastMessage(room, "onUserLeft", username);
     }
@@ -161,10 +160,8 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
     }
 
     connClosed(wsId: string): void {
-        const userInfo = this.wsUserBiMap.get(wsId);
-        if (!userInfo) {
-            throw new Error("Could not retrieve user info from WebSocket ID");
-        }
+        if (!this.wsUserBiMap.has(wsId)) throw new Error("Could not retrieve user info from WebSocket ID");
+        const userInfo = this.wsUserBiMap.get(wsId)!;
         this.leaveRoom(userInfo.roomId, userInfo.token);
     }
 

@@ -1,8 +1,12 @@
 import "./password-input.scss";
+import PasswordInputTemplate from "./password-input.html?raw"
 import {Component} from "../../component/component";
 
 export class PasswordInput extends Component {
     private readonly inputName: string;
+
+    static template = PasswordInputTemplate;
+
     constructor(parent: HTMLElement, inputName: string) {
         super(parent);
         this.inputName = inputName || "password";

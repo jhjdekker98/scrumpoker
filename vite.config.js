@@ -1,9 +1,10 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from "vite";
+import path from "path";
 
 export default defineConfig({
-    root: './src',
+    root: path.resolve(__dirname, 'src'),
     build: {
-        outDir: 'dist',
+        outDir: path.resolve(__dirname, "dist/client"),
         emptyOutDir: true
     }
 });

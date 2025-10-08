@@ -1,4 +1,5 @@
 import "./join-server.scss";
+import JoinServerTemplate from "./join-server.html?raw";
 import {Component} from "../../component/component";
 import {PasswordInput} from "../../shared/password-input/password-input";
 
@@ -11,7 +12,9 @@ export class JoinServer extends Component {
     private username: HTMLInputElement|null = null;
     private onSubmit: SubmitSignature;
 
-    constructor(parent: HTMLElement) {
+    static template = JoinServerTemplate;
+
+        constructor(parent: HTMLElement) {
         super(parent);
     }
 

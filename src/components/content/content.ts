@@ -1,4 +1,5 @@
 import "./content.scss";
+import ContentTemplate from "./content.html?raw";
 import {Component} from "../component/component";
 import {CreateServer} from "./create-server/create-server";
 import {JoinServer} from "./join-server/join-server";
@@ -6,6 +7,8 @@ import {ViewServer} from "./view-server/view-server";
 import {ViewClient} from "./view-client/view-client";
 
 export class Content extends Component {
+    static template = ContentTemplate;
+
     constructor(parent: HTMLElement) {
         super(parent);
     }
@@ -17,26 +20,29 @@ export class Content extends Component {
         const joinServer = new JoinServer(this.element!);
 
         createServer.setOnSubmit(async (roomName: string, cards: string[], roomPass?: string) => {
-            createServer.unmount();
-            joinServer.unmount();
-
             const viewServer = new ViewServer(this.element!, roomName, cards, roomPass);
-            viewServer.mount().then(() => {
-                this.afterMount();
-            }).catch((err) => {
-                this.showErrorPopup(err);
-            });
+            await viewServer.init()
+                .then(() => viewServer.mount())
+                .then(() => {
+                    createServer.unmount();
+                    joinServer.unmount();
+                    this.afterMount();
+                })
+                .catch((err) => {
+                    this.showErrorPopup(err);
+                });
         });
         joinServer.setOnSubmit(async (roomId: number, username: string, roomPass?: string) => {
-            createServer.unmount();
-            joinServer.unmount();
-
             const viewClient = new ViewClient(this.element!, roomId, username, roomPass);
-            viewClient.mount().then(() => {
-                this.afterMount();
-            }).catch((err) => {
-                this.showErrorPopup(err);
-            });
+            await viewClient.init()
+                .then(() => viewClient.mount())
+                .then(() => {
+                    createServer.unmount();
+                    joinServer.unmount();
+                    this.afterMount();
+                }).catch((err) => {
+                    this.showErrorPopup(err);
+                });
         });
 
         await createServer.mount();

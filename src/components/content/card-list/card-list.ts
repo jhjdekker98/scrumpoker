@@ -1,4 +1,5 @@
 import "./card-list.scss";
+import CardListTemplate from "./card-list.html?raw";
 import {Component} from "../../component/component";
 import {ModifyCard} from "../create-server/modify-card/modify-card";
 
@@ -48,6 +49,8 @@ export class CardList extends Component {
     private cardGap: string = "100px";
     private onSelect: SelectSignature;
     private abortController: AbortController = new AbortController();
+
+    static template = CardListTemplate;
 
     constructor(parent: HTMLElement, cards?: string[], options?: CardListOptions) {
         super(parent);

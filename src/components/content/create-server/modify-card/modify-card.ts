@@ -1,9 +1,13 @@
 import "./modify-card.scss";
+import ModifyCardTemplate from "./modify-card.html?raw";
 import {Component} from "../../../component/component";
 
 export class ModifyCard extends Component {
     private readonly onSubmit?: (val) => void;
     private readonly title: string;
+
+    static template = ModifyCardTemplate;
+
     constructor(parent: HTMLElement, title: string = "Modify card", onSubmit?: (val) => void) {
         super(parent);
         this.onSubmit = onSubmit;

@@ -1,10 +1,12 @@
 import "./view-server.scss";
+import ViewServerTemplate from "./view-server.html?raw";
 import {Component} from "../../component/component";
 import {newWebSocketRpcSession, RpcStub} from "capnweb";
 import {ScrumPokerApi} from "../../../../ws-server/interfaces";
-import {PORT_NUMBER} from "../../../../ws-server/model/constants";
 import {ListenerImpl} from "../../../model/ListenerImpl";
 import {UserChoices} from "../card-list/user-choices/user-choices";
+import { v4 as uuid } from "uuid";
+import { config } from "../../../../envloader";
 
 export class ViewServer extends Component {
     private readonly roomName: string;
@@ -14,6 +16,9 @@ export class ViewServer extends Component {
     private roomId?: number;
     private api?: RpcStub<ScrumPokerApi>;
     private userChoices?: UserChoices;
+    private didInit: boolean = false;
+
+    static template = ViewServerTemplate;
 
     constructor(parent: HTMLElement, roomName: string, cards: string[], roomPass?: string) {
         super(parent);
@@ -36,9 +41,10 @@ export class ViewServer extends Component {
     }
 
     // --- Local methods ---
-    private async init() {
-        // TODO: Make URL configurable
-        this.api = newWebSocketRpcSession<ScrumPokerApi>(`http://localhost:${PORT_NUMBER}/api`);
+    public async init() {
+        await this.loadTemplate();
+        const sessionId = uuid().replace("-", "");
+        this.api = newWebSocketRpcSession<ScrumPokerApi>(`${config.apiUrl()}/api?s=${sessionId}`);
         const listener = new ListenerImpl({
             onUserChoseCard: this.handleUserChoseCard.bind(this),
             onUserJoined: this.handleUserJoined.bind(this),
@@ -46,7 +52,7 @@ export class ViewServer extends Component {
             onIssueChanged: (issue: string) => { /* no-op */ }
         });
 
-        const createResponse: {roomId: number, token: string} = await this.api.createRoom(this.roomName, this.cards, listener, this.roomPass);
+        const createResponse: {roomId: number, token: string} = await this.api.createRoom(this.roomName, this.cards, listener, sessionId, this.roomPass);
         this.roomId = createResponse.roomId;
         this.authToken = createResponse.token;
 
@@ -54,12 +60,15 @@ export class ViewServer extends Component {
         const cardHolderTemplate = this.element!.querySelector("div#cardHolder");
         this.userChoices = new UserChoices(cardHolderTemplate.parentElement!, roomUsers);
         cardHolderTemplate.remove();
-        this.userChoices.mount();
+        await this.userChoices.mount();
+        this.didInit = true;
     }
 
     protected async onMount() {
+        if (!this.didInit) {
+            throw new Error("Tried to mount ViewClient before initialization");
+        }
         super.onMount();
-        await this.init();
 
         this.element!.querySelector<HTMLSpanElement>("span#roomId").innerText = this.roomId.toString().padStart(4, "0");
         this.element!.querySelector<HTMLSpanElement>("span#roomName").innerText = this.roomName;

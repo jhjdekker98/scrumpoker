@@ -10,7 +10,7 @@ if (!app) {
 
 const savedTheme = (localStorage.getItem(THEME_KEY) as Theme) || "dark";
 applyTheme(savedTheme).then(() => {
-    document.body.classList.remove("disable-transitions");
+    requestAnimationFrame(() => document.body.classList.remove("disable-transitions"));
 }).catch(err => {
     console.error(err);
 });

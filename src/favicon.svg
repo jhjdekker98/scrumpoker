@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64" fill="none" role="img" aria-label="Scrum poker icon">
+    <!-- back card -->
+    <rect x="3" y="3" width="12" height="18" rx="2" transform="rotate(-10 9 12)" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+    <!-- front card -->
+    <rect x="7" y="2.6" width="12" height="18" rx="2" transform="rotate(8 13 11.6)" fill="currentColor" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+    <!-- small badge on front card -->
+    <circle cx="13.2" cy="10.8" r="2.6" fill="#ffffff"/>
+    <!-- numeral on front card badge -->
+    <text x="13.2" y="11.9" transform="rotate(8 13 11.6)" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial" font-size="3.6" font-weight="700" fill="currentColor">?</text>
+</svg>

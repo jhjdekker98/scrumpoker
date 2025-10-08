@@ -1,8 +1,11 @@
+import "./header.scss";
+import HeaderTemplate from "./header.html?raw";
 import { Component } from "../component/component";
 import {THEME_KEY, Theme, applyTheme} from "../../constants";
-import "./header.scss";
 
 export class Header extends Component {
+    static template = HeaderTemplate;
+
     constructor(parent: HTMLElement) {
         super(parent);
     }
