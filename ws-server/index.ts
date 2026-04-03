@@ -1,6 +1,6 @@
 import http, {IncomingMessage, ServerResponse} from "node:http";
 import { WebSocketServer } from "ws";
-import {newWebSocketRpcSession, nodeHttpBatchRpcResponse, RpcStub} from "capnweb";
+import {newWebSocketRpcSession, nodeHttpBatchRpcResponse} from "capnweb";
 import {ScrumPokerApiImpl} from "./interfaces";
 import { v4 as uuid } from "uuid";
 import { config } from "../envloader";
@@ -21,12 +21,27 @@ const httpServer = http.createServer(async (request: IncomingMessage, response: 
     }
 
     // Accept Cap'n Web requests at `/api`.
-    if (request.url === "/api") {
+    if (request.url?.startsWith("/api")) {
+        const url = new URL(request.url, `http://${request.headers.host}`);
+        const sessionId = url.searchParams.get("s");
+
+        if (sessionId) {
+            api.pushHttp(sessionId, uuid());
+        }
+
         try {
             await nodeHttpBatchRpcResponse(request, response, api, {
                 // Since we're accepting WebSockets, we might as well accept cross-origin HTTP, since WebSockets always
                 // permit cross-origin request anyway.
-                headers: { "Access-Control-Allow-Origin": "*" },
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type",
+                    "Access-Control-Max-Age": "86400", // Cache preflight for 24h to reduce noise
+                    "Cache-Control": "no-store, no-cache, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
             });
         } catch (err) {
             response.writeHead(500, { "content-type": "text/plain" });
@@ -46,9 +61,19 @@ wsServer.on("connection", (ws, req) => {
     // incompatible with the standard one. In practice, though, they are compatible enough for Cap'n Web.
     (ws as WebSocket).onclose = () => {
         const wsId = wsToId.get(ws)!;
-        api.connClosed(wsId);
+        try {
+            api.connClosed(wsId);
+        } catch (e) {
+            console.warn(e);
+        }
     }
-    const sessionId = req.url!.split("?s=")[1];
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const sessionId = url.searchParams.get("s");
+
+    if (!sessionId) {
+        console.error("Tried to start WS conn without session ID!");
+        return;
+    }
     newWebSocketRpcSession(ws as any, api);
     const wsId = uuid();
     wsToId.set(ws, wsId);

@@ -12,6 +12,7 @@ export class CreateServer extends Component {
     private cardList?: CardList;
     private onSubmit: SubmitSignature;
 
+    // noinspection JSAnnotator
     static template = CreateServerTemplate;
 
         constructor(parent: HTMLElement) {

@@ -1,13 +1,13 @@
 import "./view-client.scss";
 import ViewClientTemplate from "./view-client.html?raw";
 import {Component} from "../../component/component";
-import {newWebSocketRpcSession, RpcStub} from "capnweb";
-import {ScrumPokerApi} from "../../../../ws-server/interfaces";
+import {RpcStub} from "capnweb";
+import {ScrumPokerApi, ScrumPokerApiImpl} from "../../../../ws-server/interfaces";
 import {CardList} from "../card-list/card-list";
 import {ListenerImpl} from "../../../model/ListenerImpl";
 import {UserChoices} from "../card-list/user-choices/user-choices";
 import { v4 as uuid } from "uuid";
-import { config } from "../../../../envloader";
+import {createApiConn} from "../../../constants";
 
 export class ViewClient extends Component {
 
@@ -24,6 +24,7 @@ export class ViewClient extends Component {
     private userChoices?: UserChoices;
     private didInit: boolean = false;
 
+    // noinspection JSAnnotator
     static template = ViewClientTemplate;
 
     constructor(parent: HTMLElement, roomId: number, username: string, roomPass?: string, showCards: boolean = true) {
@@ -53,6 +54,10 @@ export class ViewClient extends Component {
     }
 
     private handleUserLeft(username: string): void {
+        if (username === ScrumPokerApiImpl.ADMIN_NAME) {
+            this.unmount().then(() => window.location.reload());
+            return;
+        }
         const removeChild = Array.from(this.userList!.children)
             .find((e: HTMLElement) => e.innerText === username);
         if (!removeChild) {
@@ -69,8 +74,8 @@ export class ViewClient extends Component {
     // --- Local methods ---
     public async init() {
         await this.loadTemplate();
-        const sessionId = uuid().replace("-", "");
-        this.api = newWebSocketRpcSession<ScrumPokerApi>(`${config.apiUrl()}/api?s=${sessionId}`);
+        const sessionId = uuid().replaceAll("-", "");
+        this.api = await createApiConn(sessionId);
         const listener = new ListenerImpl({
             onUserChoseCard: this.handleUserChoseCard.bind(this),
             onUserJoined: this.handleUserJoined.bind(this),
@@ -127,5 +132,8 @@ export class ViewClient extends Component {
     protected onUnmount() {
         super.onUnmount();
         this.api?.leaveRoom(this.roomId!, this.authToken!);
+        if ((this.api as any)?.disconnect) {
+            (this.api as any).disconnect();
+        }
     }
 }

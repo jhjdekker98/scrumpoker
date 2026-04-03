@@ -6,6 +6,7 @@ export class ModifyCard extends Component {
     private readonly onSubmit?: (val) => void;
     private readonly title: string;
 
+    // noinspection JSAnnotator
     static template = ModifyCardTemplate;
 
     constructor(parent: HTMLElement, title: string = "Modify card", onSubmit?: (val) => void) {

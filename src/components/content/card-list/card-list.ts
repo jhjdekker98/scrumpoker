@@ -50,6 +50,8 @@ export class CardList extends Component {
     private onSelect: SelectSignature;
     private abortController: AbortController = new AbortController();
 
+
+    // noinspection JSAnnotator
     static template = CardListTemplate;
 
     constructor(parent: HTMLElement, cards?: string[], options?: CardListOptions) {

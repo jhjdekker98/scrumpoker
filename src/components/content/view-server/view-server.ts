@@ -1,12 +1,12 @@
 import "./view-server.scss";
 import ViewServerTemplate from "./view-server.html?raw";
 import {Component} from "../../component/component";
-import {newWebSocketRpcSession, RpcStub} from "capnweb";
+import {RpcStub} from "capnweb";
 import {ScrumPokerApi} from "../../../../ws-server/interfaces";
 import {ListenerImpl} from "../../../model/ListenerImpl";
 import {UserChoices} from "../card-list/user-choices/user-choices";
 import { v4 as uuid } from "uuid";
-import { config } from "../../../../envloader";
+import {createApiConn} from "../../../constants";
 
 export class ViewServer extends Component {
     private readonly roomName: string;
@@ -18,6 +18,7 @@ export class ViewServer extends Component {
     private userChoices?: UserChoices;
     private didInit: boolean = false;
 
+    // noinspection JSAnnotator
     static template = ViewServerTemplate;
 
     constructor(parent: HTMLElement, roomName: string, cards: string[], roomPass?: string) {
@@ -43,8 +44,8 @@ export class ViewServer extends Component {
     // --- Local methods ---
     public async init() {
         await this.loadTemplate();
-        const sessionId = uuid().replace("-", "");
-        this.api = newWebSocketRpcSession<ScrumPokerApi>(`${config.apiUrl()}/api?s=${sessionId}`);
+        const sessionId = uuid().replaceAll("-", "");
+        this.api = await createApiConn(sessionId);
         const listener = new ListenerImpl({
             onUserChoseCard: this.handleUserChoseCard.bind(this),
             onUserJoined: this.handleUserJoined.bind(this),
@@ -89,5 +90,8 @@ export class ViewServer extends Component {
     protected onUnmount() {
         super.onUnmount();
         this.api?.leaveRoom(this.roomId!, this.authToken!);
+        if ((this.api as any)?.disconnect) {
+            (this.api as any).disconnect();
+        }
     }
 }

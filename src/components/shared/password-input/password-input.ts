@@ -5,6 +5,7 @@ import {Component} from "../../component/component";
 export class PasswordInput extends Component {
     private readonly inputName: string;
 
+    // noinspection JSAnnotator
     static template = PasswordInputTemplate;
 
     constructor(parent: HTMLElement, inputName: string) {

@@ -9,6 +9,7 @@ export class UserChoices extends Component {
     private cardList?: CardList;
     private mounted: boolean = false;
 
+    // noinspection JSAnnotator
     static template = UserChoicesTemplate;
 
     constructor(parent: HTMLElement, users: string[]) {

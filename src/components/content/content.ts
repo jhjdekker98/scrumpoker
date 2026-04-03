@@ -7,6 +7,7 @@ import {ViewServer} from "./view-server/view-server";
 import {ViewClient} from "./view-client/view-client";
 
 export class Content extends Component {
+    // noinspection JSAnnotator
     static template = ContentTemplate;
 
     constructor(parent: HTMLElement) {

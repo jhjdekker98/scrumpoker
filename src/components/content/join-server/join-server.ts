@@ -12,6 +12,7 @@ export class JoinServer extends Component {
     private username: HTMLInputElement|null = null;
     private onSubmit: SubmitSignature;
 
+    // noinspection JSAnnotator
     static template = JoinServerTemplate;
 
         constructor(parent: HTMLElement) {
