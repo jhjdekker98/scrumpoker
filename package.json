@@ -10,7 +10,8 @@
     "build:ws": "vite build --config ws-server/vite.config.js --mode development",
     "watch:ws": "vite build --watch --config ws-server/vite.config.js --mode development",
     "start:ws": "node dist/ws-server/index.js --mode development",
-    "dev": "npm i && concurrently \"npm run build:ws && npm run start:ws\" \"npm run dev:client\""
+    "dev": "npm i && concurrently \"npm run build:ws && npm run start:ws\" \"npm run dev:client\"",
+    "test:unit": "vitest"
   },
   "repository": {
     "type": "git",
@@ -34,6 +35,8 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "jsdom": "^29.0.2",
+    "vitest": "^4.1.4"
   }
 }
