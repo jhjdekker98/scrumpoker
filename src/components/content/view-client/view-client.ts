@@ -37,7 +37,7 @@ export class ViewClient extends Component {
 
     // --- Delegation handlers ---
     private handleIssueChanged(issue: string): void {
-        document.querySelector<HTMLHeadingElement>("h2#issue").innerText = issue;
+        document.querySelector<HTMLHeadingElement>("h2#issue").textContent = issue;
         this.userChoices!.reset();
         this.cardList!.removeHighlights();
         this.cardList!.cardsActive();
@@ -48,7 +48,7 @@ export class ViewClient extends Component {
             return;
         }
         const newUserListItem = document.createElement("li");
-        newUserListItem.innerText = username;
+        newUserListItem.textContent = username;
         this.userList.appendChild(newUserListItem);
         this.userChoices!.onUserJoined(username);
     }
@@ -59,7 +59,7 @@ export class ViewClient extends Component {
             return;
         }
         const removeChild = Array.from(this.userList!.children)
-            .find((e: HTMLElement) => e.innerText === username);
+            .find((e: HTMLElement) => e.textContent === username);
         if (!removeChild) {
             throw new Error(`Tried to remove non-existant user ${username}`);
         }
@@ -119,8 +119,8 @@ export class ViewClient extends Component {
             this.cardList.cardsInactive();
         }
 
-        this.element!.querySelector<HTMLSpanElement>("span#roomId").innerText = this.roomId.toString().padStart(4, "0");
-        this.element!.querySelector<HTMLSpanElement>("span#roomName").innerText = this.roomName.toString();
+        this.element!.querySelector<HTMLSpanElement>("span#roomId").textContent = this.roomId.toString().padStart(4, "0");
+        this.element!.querySelector<HTMLSpanElement>("span#roomName").textContent = this.roomName.toString();
         this.userList = this.element!.querySelector<HTMLUListElement>("div.userList ul");
         const userChoicesCardHolderTemplate = this.element!.querySelector("div#userHolder");
         this.userChoices = new UserChoices(userChoicesCardHolderTemplate.parentElement!, []);

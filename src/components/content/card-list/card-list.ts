@@ -83,7 +83,7 @@ export class CardList extends Component {
 
     public highlightCardByValue(card: string, highlight: string): void {
         const cardIndex = Array.from(this.element!.querySelectorAll<HTMLDivElement>(".card"))
-            .findIndex(elem => elem.querySelector("h1").innerText === card);
+            .findIndex(elem => elem.querySelector("h1").textContent === card);
         if (cardIndex === -1) {
             throw new Error(`Could not highlight non-existent card: ${card}`);
         }
@@ -145,12 +145,12 @@ export class CardList extends Component {
 
     public createNewCard(text: string, beforeElement?: Node): HTMLDivElement {
         const newCard = (this.cardTemplate.cloneNode(true) as HTMLDivElement);
-        newCard.querySelector("h1").innerText = text;
+        newCard.querySelector("h1").textContent = text;
 
         if (this.options.modify) {
             newCard.addEventListener("click", () => {
                 const modifyCard = new ModifyCard(document.body, "Modify card", (val) => {
-                    newCard.querySelector("h1").innerText = val;
+                    newCard.querySelector("h1").textContent = val;
                 });
                 modifyCard.mount();
             });
@@ -163,7 +163,7 @@ export class CardList extends Component {
                 if (!this.onSelect) {
                     throw new Error("Callback for CardList::onSelect not set");
                 }
-                this.onSelect(newCard.querySelector("h1").innerText);
+                this.onSelect(newCard.querySelector("h1").textContent);
             })
         }
 
@@ -181,7 +181,7 @@ export class CardList extends Component {
         if (index < 0 || index >= allCards.length) {
             throw new Error(`Tried to access non-existant card with index" ${index}`);
         }
-        allCards[index].querySelector("h1").innerText = value;
+        allCards[index].querySelector("h1").textContent = value;
     }
 
     public removeCard(index: number): void {
@@ -194,7 +194,7 @@ export class CardList extends Component {
 
     public modifyCards(value: string): void {
         this.element!.querySelectorAll<HTMLDivElement>(".card").forEach(elem =>
-            elem.querySelector("h1").innerText = value);
+            elem.querySelector("h1").textContent = value);
     }
 
     public cardCount(): number {

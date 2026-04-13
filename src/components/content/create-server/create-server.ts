@@ -21,7 +21,7 @@ export class CreateServer extends Component {
 
     public getCardOrder() {
         const cards = this.element!.querySelectorAll("#cardHolder .card:not(.addCard)");
-        return Array.from(cards).map(x => x.querySelector("h1").innerText);
+        return Array.from(cards).map(x => x.querySelector("h1").textContent);
     }
 
     protected async onMount() {

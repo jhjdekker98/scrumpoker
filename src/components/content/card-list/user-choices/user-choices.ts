@@ -44,7 +44,7 @@ export class UserChoices extends Component {
         this.users.push(username);
         const usernameTag = document.createElement("span");
         usernameTag.className = "userTag";
-        usernameTag.innerText = username;
+        usernameTag.textContent = username;
         this.cardList!.createNewCard("?").appendChild(usernameTag);
     }
 

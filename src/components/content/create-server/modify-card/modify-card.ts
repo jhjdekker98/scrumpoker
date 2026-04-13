@@ -17,7 +17,7 @@ export class ModifyCard extends Component {
 
     protected onMount() {
         super.onMount();
-        this.element!.querySelector("h3").innerText = this.title;
+        this.element!.querySelector("h3").textContent = this.title;
         this.element!.querySelector(".modify-card").addEventListener("click", (e) => e.stopPropagation());
         this.element!.addEventListener("click", () => this.unmount());
         this.element!.querySelector("button").addEventListener("click", () => {

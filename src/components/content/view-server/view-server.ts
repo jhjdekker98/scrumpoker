@@ -71,8 +71,8 @@ export class ViewServer extends Component {
         }
         super.onMount();
 
-        this.element!.querySelector<HTMLSpanElement>("span#roomId").innerText = this.roomId.toString().padStart(4, "0");
-        this.element!.querySelector<HTMLSpanElement>("span#roomName").innerText = this.roomName;
+        this.element!.querySelector<HTMLSpanElement>("span#roomId").textContent = this.roomId.toString().padStart(4, "0");
+        this.element!.querySelector<HTMLSpanElement>("span#roomName").textContent = this.roomName;
         this.element!.querySelector<HTMLButtonElement>(".issueInput .inputBox button").addEventListener("click", () => {
             const issueInput = this.element!.querySelector<HTMLInputElement>(`.issueInput .inputBox input[name="issue"]`);
             const newIssueText = issueInput.value;
@@ -80,7 +80,7 @@ export class ViewServer extends Component {
                 issueInput.setAttribute("invalid", "");
                 return;
             }
-            this.element!.querySelector<HTMLSpanElement>(".issueInput span#issueText").innerText = newIssueText;
+            this.element!.querySelector<HTMLSpanElement>(".issueInput span#issueText").textContent = newIssueText;
             issueInput.value = "";
             this.api!.setRoomIssue(this.roomId!, newIssueText, this.authToken!);
             this.userChoices!.reset();
