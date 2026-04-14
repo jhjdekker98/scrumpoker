@@ -14,7 +14,7 @@
     border-radius: 0.6rem;
     background-color: var(--bg-color-up2);
     border: 1px solid #888; /* TODO: Find better solution for this with multiple styles */
-    cursor: pointer;
+    cursor: default;
     user-select: none;
 
     .textHolder {
@@ -78,5 +78,9 @@
     &[highlight="ok"] {
       box-shadow: 0 0 1em -4px #59d719;
     }
+  }
+
+  &.selectable .card {
+    cursor: pointer;
   }
 }

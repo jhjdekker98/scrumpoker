@@ -1,6 +1,8 @@
 export abstract class Component {
+    private static readonly MOUNT_EVENT_NAME = "mounted";
     public element: HTMLElement | null = null;
     private templateLoaded: boolean = false;
+    private childComponents: Component[] = [];
 
     constructor(protected parent: HTMLElement) {}
 
@@ -21,11 +23,32 @@ export abstract class Component {
 
     public async mount(): Promise<void> {
         await this.loadTemplate();
-        if (this.element) this.parent.appendChild(this.element);
+
+        if (this.element) {
+            this.parent.appendChild(this.element);
+
+            this.element.addEventListener(Component.MOUNT_EVENT_NAME, (e: Event) => {
+                const customEvent = e as CustomEvent<Component>;
+                if (customEvent.detail === this) return;
+                e.stopPropagation();
+                this.childComponents.push(customEvent.detail);
+            });
+
+            this.element.dispatchEvent(new CustomEvent(Component.MOUNT_EVENT_NAME, {
+                detail: this,
+                bubbles: true
+            }));
+        }
+
         await this.onMount();
     }
 
     public async unmount(): Promise<void> {
+        for (const child of this.childComponents) {
+            await child.unmount();
+        }
+        this.childComponents = []; // Clean up references
+
         if (this.element && this.element.parentElement) {
             this.element.parentElement.removeChild(this.element);
             this.element = null;

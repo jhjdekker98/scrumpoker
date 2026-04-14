@@ -65,6 +65,13 @@ export class CardList extends Component {
 
     public setOnSelect(onSelect: SelectSignature): void {
         this.onSelect = onSelect;
+        if (this.element) {
+            if (onSelect === null) {
+                this.element.classList.remove("selectable");
+            } else {
+                this.element.classList.add("selectable");
+            }
+        }
     }
 
     public removeHighlights(): void {
@@ -122,7 +129,7 @@ export class CardList extends Component {
         if (this.options.modify) {
             this.addDragHandlers();
         } else {
-            document.querySelectorAll<HTMLDivElement>(".card .buttonHolder")
+            this.element!.querySelectorAll<HTMLDivElement>(".card > .buttonHolder")
                 .forEach(elem => elem.remove());
         }
 
@@ -135,6 +142,10 @@ export class CardList extends Component {
             });
         } else {
             addCard.remove();
+        }
+
+        if (this.options.modify || this.onSelect) {
+            this.element!.classList.add("selectable");
         }
     }
 
@@ -164,7 +175,9 @@ export class CardList extends Component {
                     throw new Error("Callback for CardList::onSelect not set");
                 }
                 this.onSelect(newCard.querySelector("h1").textContent);
-            })
+            });
+            newCard.querySelectorAll<HTMLDivElement>(".buttonHolder")
+                .forEach(elem => elem.remove());
         }
 
         if (beforeElement) {

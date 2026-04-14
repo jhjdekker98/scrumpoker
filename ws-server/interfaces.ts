@@ -42,8 +42,8 @@ interface UserInfo {
 export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
     private static readonly ROOM_ID_MAX = 9999;
     public static readonly ADMIN_NAME = "Admin";
-    private static readonly HTTP_TIMEOUT = 30000;
-    private static readonly HTTP_REAP_INTERVAL = 10000;
+    private static readonly HTTP_TIMEOUT = 10000;
+    private static readonly HTTP_REAP_INTERVAL = 1000;
     private readonly rooms: Map<number, Room> = new Map<number, Room>();
     private readonly sessionRegistry = new Map<string, UserInfo>();
     private readonly httpListeners: Map<string, HttpListenerQueue> = new Map<string, HttpListenerQueue>();
@@ -223,7 +223,9 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
 
     async pollEvents(sessionId: string): Promise<Array<{method: string, args: any[]}>> {
         const state = this.sessionRegistry.get(sessionId);
-        if (!state) return [];
+        if (!state || !this.rooms.has(state.roomId)) {
+            return [{method: "onUserLeft", args: [ScrumPokerApiImpl.ADMIN_NAME]}];
+        }
 
         state.lastSeen = Date.now();
         let queue = this.httpListeners.get(sessionId);
