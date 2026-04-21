@@ -22,6 +22,18 @@ const httpServer = http.createServer(async (request: IncomingMessage, response: 
 
     // Accept Cap'n Web requests at `/api`.
     if (request.url?.startsWith("/api")) {
+        // Handle CORS Preflight requests immediately
+        if (request.method === "OPTIONS") {
+            response.writeHead(204, {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+                "Access-Control-Max-Age": "86400",
+            });
+            response.end();
+            return;
+        }
+
         const url = new URL(request.url, `http://${request.headers.host}`);
         const sessionId = url.searchParams.get("s");
 
@@ -44,14 +56,22 @@ const httpServer = http.createServer(async (request: IncomingMessage, response: 
                 }
             });
         } catch (err) {
-            response.writeHead(500, { "content-type": "text/plain" });
-            response.end(String(err));
+            if (!response.headersSent) {
+                response.writeHead(500, {"content-type": "text/plain"});
+                response.end(String(err));
+            } else {
+                console.error("[FATAL] Error occurred after headers set:", err);
+                response.end(); // simply terminate the stream
+            }
         }
         return;
     }
 
-    response.writeHead(404, { "content-type": "text/plain" });
-    response.end("Not Found");
+    // Ensure we don't 404 if headers were already sent
+    if (!response.headersSent) {
+        response.writeHead(404, {"content-type": "text/plain"});
+        response.end("Not Found");
+    }
 });
 
 // Arrange to handle WebSockets as well, using the `ws` package.
