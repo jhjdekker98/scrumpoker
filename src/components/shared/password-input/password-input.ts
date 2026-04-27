@@ -1,6 +1,6 @@
 import "./password-input.scss";
 import PasswordInputTemplate from "./password-input.html?raw"
-import {Component} from "../../component/component";
+import {Component} from "@slyce.dev/ridr";
 
 export class PasswordInput extends Component {
     private readonly inputName: string;

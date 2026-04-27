@@ -1,6 +1,6 @@
 import "./view-server.scss";
 import ViewServerTemplate from "./view-server.html?raw";
-import {Component} from "../../component/component";
+import {Component} from "@slyce.dev/ridr";
 import {RpcStub} from "capnweb";
 import {ScrumPokerApi} from "../../../../ws-server/interfaces";
 import {ListenerImpl} from "../../../model/ListenerImpl";

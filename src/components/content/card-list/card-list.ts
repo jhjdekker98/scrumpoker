@@ -1,6 +1,6 @@
 import "./card-list.scss";
 import CardListTemplate from "./card-list.html?raw";
-import {Component} from "../../component/component";
+import {Component} from "@slyce.dev/ridr";
 import {ModifyCard} from "../create-server/modify-card/modify-card";
 
 interface Coord {

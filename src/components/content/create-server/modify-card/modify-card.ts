@@ -1,6 +1,6 @@
 import "./modify-card.scss";
 import ModifyCardTemplate from "./modify-card.html?raw";
-import {Component} from "../../../component/component";
+import {Component} from "@slyce.dev/ridr";
 
 export class ModifyCard extends Component {
     private readonly onSubmit?: (val) => void;

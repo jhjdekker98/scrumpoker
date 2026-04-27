@@ -1,6 +1,6 @@
 import "./view-client.scss";
 import ViewClientTemplate from "./view-client.html?raw";
-import {Component} from "../../component/component";
+import {Component} from "@slyce.dev/ridr";
 import {RpcStub} from "capnweb";
 import {ScrumPokerApi, ScrumPokerApiImpl} from "../../../../ws-server/interfaces";
 import {CardList} from "../card-list/card-list";

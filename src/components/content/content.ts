@@ -1,6 +1,6 @@
 import "./content.scss";
 import ContentTemplate from "./content.html?raw";
-import {Component} from "../component/component";
+import {Component} from "@slyce.dev/ridr";
 import {CreateServer} from "./create-server/create-server";
 import {JoinServer} from "./join-server/join-server";
 import {ViewServer} from "./view-server/view-server";

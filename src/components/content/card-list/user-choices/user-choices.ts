@@ -1,6 +1,6 @@
 import "./user-choices.scss";
 import UserChoicesTemplate from "./user-choices.html?raw";
-import {Component} from "../../../component/component";
+import {Component} from "@slyce.dev/ridr";
 import {CardList} from "../card-list";
 
 export interface IParticipant {

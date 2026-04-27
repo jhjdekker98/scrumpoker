@@ -1,6 +1,6 @@
 import "./header.scss";
 import HeaderTemplate from "./header.html?raw";
-import { Component } from "../component/component";
+import {Component} from "@slyce.dev/ridr";
 import {THEME_KEY, Theme, applyTheme} from "../../constants";
 
 export class Header extends Component {

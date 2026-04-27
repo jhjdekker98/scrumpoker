@@ -1,6 +1,6 @@
 import "./join-server.scss";
 import JoinServerTemplate from "./join-server.html?raw";
-import {Component} from "../../component/component";
+import {Component} from "@slyce.dev/ridr";
 import {PasswordInput} from "../../shared/password-input/password-input";
 
 type SubmitSignature = (roomId: number, username: string, roomPass?: string) => void;

@@ -1,6 +1,6 @@
 import "./create-server.scss";
 import CreateServerTemplate from "./create-server.html?raw";
-import {Component} from "../../component/component";
+import {Component} from "@slyce.dev/ridr";
 import {PasswordInput} from "../../shared/password-input/password-input";
 import {CardList} from "../card-list/card-list";
 
