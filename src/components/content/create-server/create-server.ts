@@ -15,10 +15,6 @@ export class CreateServer extends Component {
     // noinspection JSAnnotator
     static template = CreateServerTemplate;
 
-        constructor(parent: HTMLElement) {
-        super(parent);
-    }
-
     public getCardOrder() {
         const cards = this.element!.querySelectorAll("#cardHolder .card:not(.addCard)");
         return Array.from(cards).map(x => x.querySelector("h1").textContent);

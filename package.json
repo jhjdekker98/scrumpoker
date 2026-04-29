@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/jhjdekker98/scrumpoker#readme",
   "dependencies": {
-    "@slyce.dev/ridr": "^0.0.2",
+    "@slyce.dev/ridr": "^0.0.3",
     "@types/node": "^24.6.1",
     "@types/ws": "^8.18.1",
     "capnweb": "^0.6.1",

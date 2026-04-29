@@ -8,7 +8,7 @@ body {
 }
 
 .themed {
-  transition-property: background-color, color, border, text-decoration;
+  transition-property: background-color, color, border, text-decoration, fill;
   transition-duration: 0.4s;
   transition-timing-function: ease-out;
 }

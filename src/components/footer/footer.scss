@@ -1,0 +1,35 @@
+$footer-height: 2em;
+$footer-padding: 0.5em;
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: $footer-height;
+  padding: $footer-padding;
+
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+
+  background: linear-gradient(0deg, var(--header-bg-color) -100%, transparent 100%);
+
+  * {
+    display: inline-block;
+  }
+
+  a {
+    color: var(--header-text-color)
+  }
+
+  svg {
+    width: calc($footer-height - $footer-padding);
+    margin: -$footer-padding 0;
+
+    path {
+      fill: var(--header-text-color);
+    }
+  }
+}

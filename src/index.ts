@@ -2,6 +2,7 @@ import "/index.scss";
 import { Header } from "/components/header/header"
 import {THEME_KEY, Theme, applyTheme} from "/constants";
 import {Content} from "./components/content/content";
+import {Footer} from "./components/footer/footer";
 
 const app = document.getElementById("app")!;
 if (!app) {
@@ -17,6 +18,9 @@ applyTheme(savedTheme).then(() => {
 
 const header = new Header(app);
 await header.mount();
+
+const footer = new Footer(app);
+await footer.mount();
 
 const content = new Content(app);
 await content.mount();

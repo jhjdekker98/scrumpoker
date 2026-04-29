@@ -1,0 +1,22 @@
+.spinner {
+  margin: auto;
+  padding: 4em;
+
+  svg {
+    animation: rotate 1s linear 0s infinite;
+    width: 4em;
+
+    path {
+      fill: var(--text-color);
+    }
+  }
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

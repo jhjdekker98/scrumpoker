@@ -5,14 +5,11 @@ import {CreateServer} from "./create-server/create-server";
 import {JoinServer} from "./join-server/join-server";
 import {ViewServer} from "./view-server/view-server";
 import {ViewClient} from "./view-client/view-client";
+import {LoadingSpinner} from "../shared/loading-spinner/loading-spinner";
 
 export class Content extends Component {
     // noinspection JSAnnotator
     static template = ContentTemplate;
-
-    constructor(parent: HTMLElement) {
-        super(parent);
-    }
 
     protected async onMount() {
         super.onMount();
@@ -22,26 +19,37 @@ export class Content extends Component {
 
         createServer.setOnSubmit(async (roomName: string, cards: string[], roomPass?: string) => {
             const viewServer = new ViewServer(this.element!, roomName, cards, roomPass);
+            const loadingSpinner = new LoadingSpinner(this.element!);
+            await Promise.all([createServer.unmount(), joinServer.unmount()]);
+            await loadingSpinner.mount();
             await viewServer.init()
-                .then(() => viewServer.mount())
-                .then(() => {
-                    createServer.unmount();
-                    joinServer.unmount();
+                .then(async () => {
+                    await viewServer.mount();
+                    await loadingSpinner.unmount();
                     this.afterMount();
-                })
-                .catch((err) => {
+                }).catch(async (err) => {
+                    await createServer.mount();
+                    await joinServer.mount();
+                    await loadingSpinner.unmount();
+                    this.afterMount();
                     this.showErrorPopup(err);
                 });
         });
         joinServer.setOnSubmit(async (roomId: number, username: string, roomPass?: string) => {
             const viewClient = new ViewClient(this.element!, roomId, username, roomPass);
+            const loadingSpinner = new LoadingSpinner(this.element!);
+            await Promise.all([createServer.unmount(), joinServer.unmount()]);
+            await loadingSpinner.mount();
             await viewClient.init()
-                .then(() => viewClient.mount())
-                .then(() => {
-                    createServer.unmount();
-                    joinServer.unmount();
+                .then(async () => {
+                    await viewClient.mount();
+                    await loadingSpinner.unmount();
                     this.afterMount();
-                }).catch((err) => {
+                }).catch(async (err) => {
+                    await createServer.mount();
+                    await joinServer.mount();
+                    await loadingSpinner.unmount();
+                    this.afterMount();
                     this.showErrorPopup(err);
                 });
         });

@@ -7,10 +7,6 @@ export class Header extends Component {
     // noinspection JSAnnotator
     static template = HeaderTemplate;
 
-    constructor(parent: HTMLElement) {
-        super(parent);
-    }
-
     protected onMount() {
         const button = this.element?.querySelector("#themeBtn");
         button?.addEventListener("click", () => {

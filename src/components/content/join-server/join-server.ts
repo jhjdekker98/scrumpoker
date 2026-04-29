@@ -15,10 +15,6 @@ export class JoinServer extends Component {
     // noinspection JSAnnotator
     static template = JoinServerTemplate;
 
-        constructor(parent: HTMLElement) {
-        super(parent);
-    }
-
     protected onMount() {
         super.onMount();
 
