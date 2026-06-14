@@ -15,6 +15,7 @@ export class UserChoices extends Component {
     private mounted: boolean = false;
     private revealed: boolean = false;
     private allowsParticipants: boolean = true;
+    private ghostUsers: string[] = []; // username[]
 
     // noinspection JSAnnotator
     static template = UserChoicesTemplate;
@@ -64,22 +65,40 @@ export class UserChoices extends Component {
         if (!this.users.some(p => p.username === username)) {
             throw new Error(`Tried to remove user ${username} who is not in this Room`);
         }
-        const userIndex = this.userIndex(username);
-        this.users.splice(userIndex, 1);
-        this.userChoices.delete(username);
-        this.cardList!.removeCard(userIndex);
-        if (this.arraysEqual(Array.from(this.userChoices.keys()), this.usersWithChoices)) {
-            this.onAllUsersChoseCards();
+        if ("userChoices.has(username)", this.userChoices.has(username)) {
+            this.markAsGhost(username);
+        } else {
+            this.removeUser(username);
         }
     }
 
     public reset(): void {
+        this.ghostUsers.forEach(username => this.removeUser(username));
+        this.ghostUsers = [];
         this.cardList!.removeHighlights();
         this.cardList?.modifyCards("?");
         this.userChoices.clear();
         this.revealed = false;
         this.allowsParticipants = false;
         this.users.forEach(p => p.participant = true);
+    }
+
+    private removeUser(username: string): void {
+        if (!this.users.some(p => p.username === username)) {
+            throw new Error(`Tried to remove user ${username} who is not in this Room`);
+        }
+        const userIndex = this.userIndex(username);
+        this.users.splice(userIndex, 1);
+        this.userChoices.delete(username);
+        this.cardList!.removeCard(userIndex);
+        if (this.arraysEqual(Array.from(this.userChoices.keys()), this.usersWithChoices)) {
+            this.onAllUsersChoseCards();
+        }        
+    }
+
+    private markAsGhost(username): void {
+        this.cardList.ghostCardByIndex(this.userIndex(username));
+        this.ghostUsers.push(username);
     }
 
     private onAllUsersChoseCards(): void {
