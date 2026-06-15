@@ -3,6 +3,7 @@ import ViewClientTemplate from "./view-client.html?raw";
 import {Component} from "@slyce.dev/ridr";
 import {RpcStub} from "capnweb";
 import {ScrumPokerApi, ScrumPokerApiImpl} from "../../../../ws-server/interfaces";
+import {IRoomState} from "../../../../ws-server/model/room";
 import {CardList} from "../card-list/card-list";
 import {ListenerImpl} from "../../../model/ListenerImpl";
 import {UserChoices} from "../card-list/user-choices/user-choices";
@@ -127,6 +128,12 @@ export class ViewClient extends Component {
         userChoicesCardHolderTemplate.remove();
         await this.userChoices.mount();
         this.roomUsers!.forEach(user => this.handleUserJoined(user));
+        // TODO: If room does not support 'late joiners', return
+        const roomState: IRoomState = await this.api!.getRoomState(this.roomId, this.authToken!);
+        if (roomState.issue) {
+            this.handleIssueChanged(roomState.issue);
+        }
+        Object.entries(roomState.choices).forEach(e => this.handleUserChoseCard(e[0], e[1]));
     }
 
     protected onUnmount() {

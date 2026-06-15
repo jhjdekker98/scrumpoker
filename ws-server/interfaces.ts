@@ -1,6 +1,6 @@
 import {RpcTarget} from "capnweb";
-import {Room} from "./model/room";
-import {ERR_ILLEGAL_USERNAME, ERR_INVALID_CARD, ERR_INVALID_TOKEN, ERR_ROOM_NOT_FOUND} from "./model/constants";
+import {IRoomState, Room} from "./model/room";
+import {ERR_ILLEGAL_USERNAME, ERR_INVALID_CARD, ERR_INVALID_TOKEN, ERR_ROOM_NOT_FOUND, ERR_USERNAME_TAKEN} from "./model/constants";
 import {HttpListenerQueue} from "./model/http-listener-queue";
 
 export interface Listener extends RpcTarget {
@@ -24,6 +24,7 @@ export interface ScrumPokerApi {
     getRoomUsers(roomId: number, authToken: string): string[];
     setRoomIssue(roomId: number, issue: string, authToken: string): void;
     getRoomIssue(roomId: number, authToken: string): string | undefined;
+    getRoomState(roomId: number, authToken: string): IRoomState;
     chooseCard(roomId: number, card: string, authToken: string): void;
 
     // Public requests
@@ -118,7 +119,8 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         const room: Room = {
             roomId, roomName, cards, roomPass,
             listeners: new Map(),
-            users: new Map()
+            users: new Map(),
+            choices: new Map()
         };
         room.users.set(token, ScrumPokerApiImpl.ADMIN_NAME);
 
@@ -129,10 +131,11 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         return { roomId, token };
     }
 
-    joinRoom(roomId: number, username: string, listener: Listener, sessionId: string, roomPass?: string): string {
+    joinRoom(roomId: number, username: string, listener: Listener, sessionId: string, roomPass?: string, authToken?: string): string {
         const room = this.rooms.get(roomId);
         if (!room || (room.roomPass && room.roomPass !== roomPass)) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
         if (username === ScrumPokerApiImpl.ADMIN_NAME) throw new Error(ERR_ILLEGAL_USERNAME(username));
+        if (Array.from(room.users.values()).includes(username)) throw new Error(ERR_USERNAME_TAKEN(username));
 
         const token = this.generateToken();
         room.users.set(token, username);
@@ -197,6 +200,7 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         const room = this.getValidatedRoom(roomId, authToken);
         if (ScrumPokerApiImpl.ADMIN_NAME !== room.users.get(authToken)) throw new Error(ERR_INVALID_TOKEN());
         room.issue = issue;
+        room.choices.clear();
         this.broadcastMessage(room, "onIssueChanged", issue);
         console.log(`[ISSUE_CHANGE] Room: ${roomId} | Issue: ${issue}`);
     }
@@ -205,10 +209,19 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         return this.getValidatedRoom(roomId, authToken).issue;
     }
 
+    getRoomState(roomId: number, authToken: string): IRoomState {
+        const room = this.getValidatedRoom(roomId, authToken);
+        return {
+            issue: room.issue,
+            choices: Object.fromEntries(room.choices)
+        };
+    }
+
     chooseCard(roomId: number, card: string, authToken: string): void {
         const room = this.getValidatedRoom(roomId, authToken);
         const username = room.users.get(authToken)!;
         if (!room.cards.includes(card)) throw new Error(ERR_INVALID_CARD(card));
+        room.choices.set(username, card);
         this.broadcastMessage(room, "onUserChoseCard", username, card);
     }
 

@@ -79,7 +79,7 @@ export class UserChoices extends Component {
         this.cardList?.modifyCards("?");
         this.userChoices.clear();
         this.revealed = false;
-        this.allowsParticipants = false;
+        this.allowsParticipants = true;
         this.users.forEach(p => p.participant = true);
     }
 
@@ -108,6 +108,7 @@ export class UserChoices extends Component {
             this.cardList!.highlightCardByIndex(cardIndex, CardList.HIGHLIGHT.OK);
         });
         this.revealed = true;
+        this.allowsParticipants = false;
     }
 
     private get usersWithChoices(): string[] {
