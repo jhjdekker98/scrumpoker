@@ -41,6 +41,10 @@ export class ViewServer extends Component {
         this.userChoices?.onUserLeft(username);
     }
 
+    private handleUserPurged(username: string): void {
+        this.userChoices?.onUserPurged(username);
+    }
+
     // --- Local methods ---
     public async init() {
         await this.loadTemplate();
@@ -50,6 +54,7 @@ export class ViewServer extends Component {
             onUserChoseCard: this.handleUserChoseCard.bind(this),
             onUserJoined: this.handleUserJoined.bind(this),
             onUserLeft: this.handleUserLeft.bind(this),
+            onUserPurged: this.handleUserPurged.bind(this),
             onIssueChanged: (issue: string) => { /* no-op */ }
         });
 

@@ -6,6 +6,7 @@ import {HttpListenerQueue} from "./model/http-listener-queue";
 export interface Listener extends RpcTarget {
     onUserJoined(username: string): Promise<void>;
     onUserLeft(username: string): Promise<void>;
+    onUserPurged(username: string): Promise<void>;
     onIssueChanged(issue: string): Promise<void>;
     onUserChoseCard(username: string, card: string): Promise<void>;
 }
@@ -48,6 +49,8 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
     private readonly rooms: Map<number, Room> = new Map<number, Room>();
     private readonly sessionRegistry = new Map<string, UserInfo>();
     private readonly httpListeners: Map<string, HttpListenerQueue> = new Map<string, HttpListenerQueue>();
+    // TODO: Reflect upon data accumulation in this property. This might be a slight memory leak if the application is running for a long time.
+    private readonly historicSessionRecord: Map<string, string[]> = new Map<string, string[]>(); // sid -> token[]
 
     constructor() {
         super();
@@ -137,14 +140,17 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         if (username === ScrumPokerApiImpl.ADMIN_NAME) throw new Error(ERR_ILLEGAL_USERNAME(username));
 
         const prevSession = this.sessionRegistry.get(sessionId);
+        let reapPrev = false;
         if (prevSession && room.listeners.has(prevSession.token) && room.users.get(prevSession.token) === username) {
-            room.users.delete(prevSession.token)
+            room.users.delete(prevSession.token);
             room.listeners.delete(prevSession.token);
             const newToken = this.generateToken();
             room.users.set(newToken, username);
             this.registerUserTransport(sessionId, roomId, newToken, listener, room);
             console.log(`[ROOM_REJOIN] ID: ${room.roomId} | User: ${username} | Token: ${newToken}`);
             return newToken;
+        } else {
+            reapPrev = true;
         }
 
         if (Array.from(room.users.values()).includes(username)) throw new Error(ERR_USERNAME_TAKEN(username));
@@ -153,6 +159,10 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         room.users.set(token, username);
         this.registerUserTransport(sessionId, roomId, token, listener, room);
         this.broadcastMessage(room, "onUserJoined", username);
+
+        if (reapPrev) {
+            this.reapPrevSessionData(roomId, sessionId, token);
+        }
 
         console.log(`[ROOM_JOIN] ID: ${room.roomId} | User: ${username} | Token: ${token}`);
         return token;
@@ -179,6 +189,7 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
                     if (state.roomId === roomId) {
                         this.httpListeners.delete(sid);
                         this.sessionRegistry.delete(sid);
+                        this.historicSessionRecord.delete(sid);
                     }
                 }
             }
@@ -306,6 +317,7 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
             });
             console.log(`[REG_WS] Room: ${roomId} | SID: ${sessionId}`);
         }
+        this.historicSessionRecord.set(sessionId, [token, ...(this.historicSessionRecord.get(sessionId) || [])]);
     }
 
     private generateUniqueRoomId(): number {
@@ -322,6 +334,40 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
                 this.sessionRegistry.delete(sid);
                 return;
             }
+        }
+    }
+
+    /**
+     * Finds any user/session info in a specific room associated with this SID and cleans up the historic data
+     * @param roomId the room ID of the room to purge sessions from
+     * @param sid the Session ID
+     * @param skipToken if set, the session data associated with this auth token will be retained
+     * @private
+     */
+    private reapPrevSessionData(roomId: number, sid: string, skipToken?: string): void {
+        if (!this.historicSessionRecord.has(sid)) {
+            return;
+        }
+        const room = this.rooms.get(roomId)!;
+        const authTokens = this.historicSessionRecord.get(sid)!;
+        for (const authToken of authTokens) {
+            if (!!skipToken && authToken === skipToken) {
+                continue;
+            }
+            if (room.listeners.has(authToken) || room.users.has(authToken)) {
+                const prevUsername = room.users.get(authToken)!;
+                console.log(`[PURGE] Purging old user: ${prevUsername}`);
+                room.listeners.delete(authToken);
+                room.users.delete(authToken);
+                room.choices.delete(prevUsername);
+                this.broadcastMessage(room, "onUserPurged", prevUsername);
+                authTokens.splice(authTokens.indexOf(authToken), 1);
+            }
+        }
+        if (authTokens.length > 0) {
+            this.historicSessionRecord.set(sid, authTokens);
+        } else {
+            this.historicSessionRecord.delete(sid);
         }
     }
 }

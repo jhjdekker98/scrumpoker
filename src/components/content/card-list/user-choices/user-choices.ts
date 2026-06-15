@@ -22,7 +22,7 @@ export class UserChoices extends Component {
 
     constructor(parent: HTMLElement, users: string[]) {
         super(parent);
-        for (const user: string of users) {
+        for (const user of users) {
             this.users.push({
                 username: user,
                 participant: true
@@ -54,22 +54,32 @@ export class UserChoices extends Component {
     }
 
     public onUserJoined(username: string): void {
-        this.users.push({username, participant: this.allowsParticipants});
         const usernameTag = document.createElement("span");
         usernameTag.className = "userTag";
         usernameTag.textContent = username;
-        this.cardList!.createNewCard("?").appendChild(usernameTag);
+        if (this.ghostUsers.includes(username)) {
+            const userIndex = this.userIndex(username);
+            this.cardList!.unghostCardByIndex(userIndex);
+            this.ghostUsers = this.ghostUsers.filter(u => u !== username);
+        } else {
+            this.cardList!.createNewCard("?").appendChild(usernameTag);
+            this.users.push({username, participant: this.allowsParticipants});
+        }
     }
 
     public onUserLeft(username: string): void {
         if (!this.users.some(p => p.username === username)) {
             throw new Error(`Tried to remove user ${username} who is not in this Room`);
         }
-        if ("userChoices.has(username)", this.userChoices.has(username)) {
+        if (this.userChoices.has(username)) {
             this.markAsGhost(username);
         } else {
             this.removeUser(username);
         }
+    }
+
+    public onUserPurged(username: string): void {
+        this.removeUser(username);
     }
 
     public reset(): void {
@@ -96,8 +106,8 @@ export class UserChoices extends Component {
         }        
     }
 
-    private markAsGhost(username): void {
-        this.cardList.ghostCardByIndex(this.userIndex(username));
+    private markAsGhost(username: string): void {
+        this.cardList!.ghostCardByIndex(this.userIndex(username));
         this.ghostUsers.push(username);
     }
 

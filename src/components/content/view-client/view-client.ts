@@ -64,6 +64,11 @@ export class ViewClient extends Component {
             this.unmount().then(() => window.location.reload());
             return;
         }
+        if (!this.userList) {
+            // Early init, return without modifying anything and rely on retrieving up-to-date data from server
+            return;
+        }
+
         const removeChild = Array.from(this.userList!.children)
             .find((e: HTMLElement) => e.textContent === username);
         if (!removeChild) {
@@ -71,6 +76,10 @@ export class ViewClient extends Component {
         }
         this.userList!.removeChild(removeChild);
         this.userChoices!.onUserLeft(username);
+    }
+
+    private handleUserPurged(username: string): void {
+        this.userChoices!.onUserPurged(username);
     }
 
     private handleUserChoseCard(username: string, card: string): void {
@@ -87,6 +96,7 @@ export class ViewClient extends Component {
             onUserChoseCard: this.handleUserChoseCard.bind(this),
             onUserJoined: this.handleUserJoined.bind(this),
             onUserLeft: this.handleUserLeft.bind(this),
+            onUserPurged: this.handleUserPurged.bind(this),
             onIssueChanged: this.handleIssueChanged.bind(this)
         });
 
@@ -139,7 +149,12 @@ export class ViewClient extends Component {
         if (roomState.issue) {
             this.handleIssueChanged(roomState.issue);
         }
-        Object.entries(roomState.choices).forEach(e => this.handleUserChoseCard(e[0], e[1]));
+        Object.entries(roomState.choices).forEach(e => {
+            if (e[0] === this.username) {
+                this.onCardSelected(e[1]);
+            }
+            this.handleUserChoseCard(e[0], e[1]);
+        });
     }
 
     protected onUnmount() {
