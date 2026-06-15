@@ -8,7 +8,12 @@ import {CardList} from "../card-list/card-list";
 import {ListenerImpl} from "../../../model/ListenerImpl";
 import {UserChoices} from "../card-list/user-choices/user-choices";
 import { v4 as uuid } from "uuid";
-import {createApiConn} from "../../../constants";
+import {createApiConn, LSK_SESSION_ID} from "../../../constants";
+
+interface ISessionTuple {
+    sessionId: string,
+    roomId: number
+}
 
 export class ViewClient extends Component {
 
@@ -75,7 +80,8 @@ export class ViewClient extends Component {
     // --- Local methods ---
     public async init() {
         await this.loadTemplate();
-        const sessionId = uuid().replaceAll("-", "");
+        const sessionId = this.sessionIdFromLocalStorage(this.roomId) || uuid().replaceAll("-", "");
+        this.setSessionIdInLocalStorage(sessionId, this.roomId);
         this.api = await createApiConn(sessionId);
         const listener = new ListenerImpl({
             onUserChoseCard: this.handleUserChoseCard.bind(this),
@@ -142,5 +148,18 @@ export class ViewClient extends Component {
         if ((this.api as any)?.disconnect) {
             (this.api as any).disconnect();
         }
+    }
+
+    private sessionIdFromLocalStorage(roomId: number): string|null {
+        const localStorageValue = localStorage.getItem(LSK_SESSION_ID);
+        if (!localStorageValue) return null;
+        const parsed: ISessionTuple = JSON.parse(localStorageValue);
+        if (parsed.roomId !== roomId) return null;
+        return parsed.sessionId;
+    }
+
+    private setSessionIdInLocalStorage(sessionId: string, roomId: number): void {
+        const parsed: ISessionTuple = { sessionId, roomId };
+        localStorage.setItem(LSK_SESSION_ID, JSON.stringify(parsed));
     }
 }

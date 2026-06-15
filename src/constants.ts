@@ -2,6 +2,7 @@ import {newHttpBatchRpcSession, newWebSocketRpcSession, RpcStub} from "capnweb";
 import {ScrumPokerApi} from "../ws-server/interfaces";
 import {config} from "../envloader";
 
+export const LSK_SESSION_ID = "sessId";
 export const THEME_KEY = "selected-theme";
 export type Theme = "light" | "dark";
 const themes = import.meta.glob("/themes/*.scss");

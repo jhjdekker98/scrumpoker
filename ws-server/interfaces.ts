@@ -131,15 +131,26 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         return { roomId, token };
     }
 
-    joinRoom(roomId: number, username: string, listener: Listener, sessionId: string, roomPass?: string, authToken?: string): string {
+    joinRoom(roomId: number, username: string, listener: Listener, sessionId: string, roomPass?: string): string {
         const room = this.rooms.get(roomId);
         if (!room || (room.roomPass && room.roomPass !== roomPass)) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
         if (username === ScrumPokerApiImpl.ADMIN_NAME) throw new Error(ERR_ILLEGAL_USERNAME(username));
+
+        const prevSession = this.sessionRegistry.get(sessionId);
+        if (prevSession && room.listeners.has(prevSession.token) && room.users.get(prevSession.token) === username) {
+            room.users.delete(prevSession.token)
+            room.listeners.delete(prevSession.token);
+            const newToken = this.generateToken();
+            room.users.set(newToken, username);
+            this.registerUserTransport(sessionId, roomId, newToken, listener, room);
+            console.log(`[ROOM_REJOIN] ID: ${room.roomId} | User: ${username} | Token: ${newToken}`);
+            return newToken;
+        }
+
         if (Array.from(room.users.values()).includes(username)) throw new Error(ERR_USERNAME_TAKEN(username));
 
         const token = this.generateToken();
         room.users.set(token, username);
-
         this.registerUserTransport(sessionId, roomId, token, listener, room);
         this.broadcastMessage(room, "onUserJoined", username);
 
