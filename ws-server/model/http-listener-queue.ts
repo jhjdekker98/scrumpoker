@@ -8,7 +8,7 @@ export class HttpListenerQueue implements Listener {
     // Implement the Listener interface by queuing calls
     async onUserJoined(username: string) { this.enqueue("onUserJoined", [username]); }
     async onUserLeft(username: string) { this.enqueue("onUserLeft", [username]); }
-    async onUserPurged(username: string) { this.enqueue("onUserLeft", [username]); }
+    async onUserPurged(username: string) { this.enqueue("onUserPurged", [username]); }
     async onIssueChanged(issue: string) { this.enqueue("onIssueChanged", [issue]); }
     async onUserChoseCard(username: string, card: string) { this.enqueue("onUserChoseCard", [username, card]); }
 
