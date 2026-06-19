@@ -43,7 +43,7 @@ export class ViewClient extends Component {
 
     // --- Delegation handlers ---
     private handleIssueChanged(issue: string): void {
-        document.querySelector<HTMLHeadingElement>("h2#issue").textContent = issue;
+        document.querySelector<HTMLHeadingElement>("h2#issue")!.textContent = issue;
         this.userChoices!.reset();
         this.cardList!.removeHighlights();
         this.cardList!.cardsActive();
@@ -70,7 +70,7 @@ export class ViewClient extends Component {
         }
 
         const removeChild = Array.from(this.userList!.children)
-            .find((e: HTMLElement) => e.textContent === username);
+            .find((e: Element) => e.textContent === username);
         if (!removeChild) {
             throw new Error(`Tried to remove non-existant user ${username}`);
         }
@@ -125,7 +125,7 @@ export class ViewClient extends Component {
         super.onMount();
 
         const cards = await this.api!.getRoomCards(this.roomId, this.authToken!);
-        const cardHolderTemplate = this.element!.querySelector("div#cardHolder");
+        const cardHolderTemplate = this.element!.querySelector("div#cardHolder")!;
         if (!this.showCards) {
             cardHolderTemplate.remove();
         } else {
@@ -136,10 +136,10 @@ export class ViewClient extends Component {
             this.cardList.cardsInactive();
         }
 
-        this.element!.querySelector<HTMLSpanElement>("span#roomId").textContent = this.roomId.toString().padStart(4, "0");
-        this.element!.querySelector<HTMLSpanElement>("span#roomName").textContent = this.roomName.toString();
-        this.userList = this.element!.querySelector<HTMLUListElement>("div.userList ul");
-        const userChoicesCardHolderTemplate = this.element!.querySelector("div#userHolder");
+        this.element!.querySelector<HTMLSpanElement>("span#roomId")!.textContent = this.roomId.toString().padStart(4, "0");
+        this.element!.querySelector<HTMLSpanElement>("span#roomName")!.textContent = this.roomName || "undefined";
+        this.userList = this.element!.querySelector<HTMLUListElement>("div.userList ul")!;
+        const userChoicesCardHolderTemplate = this.element!.querySelector("div#userHolder")!;
         this.userChoices = new UserChoices(userChoicesCardHolderTemplate.parentElement!, []);
         userChoicesCardHolderTemplate.remove();
         await this.userChoices.mount();
