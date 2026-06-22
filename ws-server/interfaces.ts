@@ -1,11 +1,12 @@
 import {RpcTarget} from "capnweb";
-import {Room} from "./model/room";
-import {ERR_ILLEGAL_USERNAME, ERR_INVALID_CARD, ERR_INVALID_TOKEN, ERR_ROOM_NOT_FOUND} from "./model/constants";
+import {IRoomState, Room} from "./model/room";
+import {ERR_ILLEGAL_USERNAME, ERR_INVALID_CARD, ERR_INVALID_TOKEN, ERR_ROOM_NOT_FOUND, ERR_USERNAME_TAKEN} from "./model/constants";
 import {HttpListenerQueue} from "./model/http-listener-queue";
 
 export interface Listener extends RpcTarget {
     onUserJoined(username: string): Promise<void>;
     onUserLeft(username: string): Promise<void>;
+    onUserPurged(username: string): Promise<void>;
     onIssueChanged(issue: string): Promise<void>;
     onUserChoseCard(username: string, card: string): Promise<void>;
 }
@@ -24,6 +25,7 @@ export interface ScrumPokerApi {
     getRoomUsers(roomId: number, authToken: string): string[];
     setRoomIssue(roomId: number, issue: string, authToken: string): void;
     getRoomIssue(roomId: number, authToken: string): string | undefined;
+    getRoomState(roomId: number, authToken: string): IRoomState;
     chooseCard(roomId: number, card: string, authToken: string): void;
 
     // Public requests
@@ -47,6 +49,8 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
     private readonly rooms: Map<number, Room> = new Map<number, Room>();
     private readonly sessionRegistry = new Map<string, UserInfo>();
     private readonly httpListeners: Map<string, HttpListenerQueue> = new Map<string, HttpListenerQueue>();
+    // TODO: Reflect upon data accumulation in this property. This might be a slight memory leak if the application is running for a long time.
+    private readonly historicSessionRecord: Map<string, string[]> = new Map<string, string[]>(); // sid -> token[]
 
     constructor() {
         super();
@@ -118,7 +122,8 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         const room: Room = {
             roomId, roomName, cards, roomPass,
             listeners: new Map(),
-            users: new Map()
+            users: new Map(),
+            choices: new Map()
         };
         room.users.set(token, ScrumPokerApiImpl.ADMIN_NAME);
 
@@ -134,11 +139,30 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         if (!room || (room.roomPass && room.roomPass !== roomPass)) throw new Error(ERR_ROOM_NOT_FOUND(roomId));
         if (username === ScrumPokerApiImpl.ADMIN_NAME) throw new Error(ERR_ILLEGAL_USERNAME(username));
 
+        const prevSession = this.sessionRegistry.get(sessionId);
+        let reapPrev = false;
+        if (prevSession && room.listeners.has(prevSession.token) && room.users.get(prevSession.token) === username) {
+            room.users.delete(prevSession.token);
+            room.listeners.delete(prevSession.token);
+            const newToken = this.generateToken();
+            room.users.set(newToken, username);
+            this.registerUserTransport(sessionId, roomId, newToken, listener, room);
+            console.log(`[ROOM_REJOIN] ID: ${room.roomId} | User: ${username} | Token: ${newToken}`);
+            return newToken;
+        } else {
+            reapPrev = true;
+        }
+
+        if (Array.from(room.users.values()).includes(username)) throw new Error(ERR_USERNAME_TAKEN(username));
+
         const token = this.generateToken();
         room.users.set(token, username);
-
         this.registerUserTransport(sessionId, roomId, token, listener, room);
         this.broadcastMessage(room, "onUserJoined", username);
+
+        if (reapPrev) {
+            this.reapPrevSessionData(roomId, sessionId, token);
+        }
 
         console.log(`[ROOM_JOIN] ID: ${room.roomId} | User: ${username} | Token: ${token}`);
         return token;
@@ -165,6 +189,7 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
                     if (state.roomId === roomId) {
                         this.httpListeners.delete(sid);
                         this.sessionRegistry.delete(sid);
+                        this.historicSessionRecord.delete(sid);
                     }
                 }
             }
@@ -197,6 +222,7 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         const room = this.getValidatedRoom(roomId, authToken);
         if (ScrumPokerApiImpl.ADMIN_NAME !== room.users.get(authToken)) throw new Error(ERR_INVALID_TOKEN());
         room.issue = issue;
+        room.choices.clear();
         this.broadcastMessage(room, "onIssueChanged", issue);
         console.log(`[ISSUE_CHANGE] Room: ${roomId} | Issue: ${issue}`);
     }
@@ -205,10 +231,19 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
         return this.getValidatedRoom(roomId, authToken).issue;
     }
 
+    getRoomState(roomId: number, authToken: string): IRoomState {
+        const room = this.getValidatedRoom(roomId, authToken);
+        return {
+            issue: room.issue,
+            choices: Object.fromEntries(room.choices)
+        };
+    }
+
     chooseCard(roomId: number, card: string, authToken: string): void {
         const room = this.getValidatedRoom(roomId, authToken);
         const username = room.users.get(authToken)!;
         if (!room.cards.includes(card)) throw new Error(ERR_INVALID_CARD(card));
+        room.choices.set(username, card);
         this.broadcastMessage(room, "onUserChoseCard", username, card);
     }
 
@@ -282,6 +317,7 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
             });
             console.log(`[REG_WS] Room: ${roomId} | SID: ${sessionId}`);
         }
+        this.historicSessionRecord.set(sessionId, [token, ...(this.historicSessionRecord.get(sessionId) || [])]);
     }
 
     private generateUniqueRoomId(): number {
@@ -296,8 +332,43 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
             if (state.token === authToken) {
                 this.httpListeners.delete(sid);
                 this.sessionRegistry.delete(sid);
+                this.historicSessionRecord.delete(sid);
                 return;
             }
+        }
+    }
+
+    /**
+     * Finds any user/session info in a specific room associated with this SID and cleans up the historic data
+     * @param roomId the room ID of the room to purge sessions from
+     * @param sid the Session ID
+     * @param skipToken if set, the session data associated with this auth token will be retained
+     * @private
+     */
+    private reapPrevSessionData(roomId: number, sid: string, skipToken?: string): void {
+        if (!this.historicSessionRecord.has(sid)) {
+            return;
+        }
+        const room = this.rooms.get(roomId)!;
+        const authTokens = this.historicSessionRecord.get(sid)!;
+        for (const authToken of authTokens) {
+            if (!!skipToken && authToken === skipToken) {
+                continue;
+            }
+            if (room.listeners.has(authToken) || room.users.has(authToken)) {
+                const prevUsername = room.users.get(authToken)!;
+                console.log(`[PURGE] Purging old user: ${prevUsername}`);
+                room.listeners.delete(authToken);
+                room.users.delete(authToken);
+                room.choices.delete(prevUsername);
+                this.broadcastMessage(room, "onUserPurged", prevUsername);
+                authTokens.splice(authTokens.indexOf(authToken), 1);
+            }
+        }
+        if (authTokens.length > 0) {
+            this.historicSessionRecord.set(sid, authTokens);
+        } else {
+            this.historicSessionRecord.delete(sid);
         }
     }
 }

@@ -106,6 +106,15 @@ export class CardList extends Component {
         allCards[index].querySelector("h1").style.opacity = "0.5";
     }
 
+    public unghostCardByIndex(index: number): void {
+        const allCards = this.element!.querySelectorAll<HTMLDivElement>(".card");
+        if (index < 0 || index >= allCards.length) {
+            throw new Error(`Tried to ghost non-existent card with index ${index}`);
+        }
+        allCards[index].style.opacity = "";
+        allCards[index].querySelector("h1").style.opacity = "";
+    }
+
     public cardsInactive(): void {
         Array.from(this.element!.querySelectorAll<HTMLDivElement>(".card")).forEach(elem => {
             elem.style.pointerEvents = "none";

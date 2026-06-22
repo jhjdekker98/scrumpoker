@@ -3,11 +3,17 @@ import ViewClientTemplate from "./view-client.html?raw";
 import {Component} from "@slyce.dev/ridr";
 import {RpcStub} from "capnweb";
 import {ScrumPokerApi, ScrumPokerApiImpl} from "../../../../ws-server/interfaces";
+import {IRoomState} from "../../../../ws-server/model/room";
 import {CardList} from "../card-list/card-list";
 import {ListenerImpl} from "../../../model/ListenerImpl";
 import {UserChoices} from "../card-list/user-choices/user-choices";
 import { v4 as uuid } from "uuid";
-import {createApiConn} from "../../../constants";
+import {createApiConn, LSK_SESSION_ID} from "../../../constants";
+
+interface ISessionTuple {
+    sessionId: string,
+    roomId: number
+}
 
 export class ViewClient extends Component {
 
@@ -37,7 +43,7 @@ export class ViewClient extends Component {
 
     // --- Delegation handlers ---
     private handleIssueChanged(issue: string): void {
-        document.querySelector<HTMLHeadingElement>("h2#issue").textContent = issue;
+        document.querySelector<HTMLHeadingElement>("h2#issue")!.textContent = issue;
         this.userChoices!.reset();
         this.cardList!.removeHighlights();
         this.cardList!.cardsActive();
@@ -58,13 +64,22 @@ export class ViewClient extends Component {
             this.unmount().then(() => window.location.reload());
             return;
         }
+        if (!this.userList) {
+            // Early init, return without modifying anything and rely on retrieving up-to-date data from server
+            return;
+        }
+
         const removeChild = Array.from(this.userList!.children)
-            .find((e: HTMLElement) => e.textContent === username);
+            .find((e: Element) => e.textContent === username);
         if (!removeChild) {
             throw new Error(`Tried to remove non-existant user ${username}`);
         }
         this.userList!.removeChild(removeChild);
         this.userChoices!.onUserLeft(username);
+    }
+
+    private handleUserPurged(username: string): void {
+        this.userChoices!.onUserPurged(username);
     }
 
     private handleUserChoseCard(username: string, card: string): void {
@@ -74,12 +89,14 @@ export class ViewClient extends Component {
     // --- Local methods ---
     public async init() {
         await this.loadTemplate();
-        const sessionId = uuid().replaceAll("-", "");
+        const sessionId = this.sessionIdFromLocalStorage(this.roomId) || uuid().replaceAll("-", "");
+        this.setSessionIdInLocalStorage(sessionId, this.roomId);
         this.api = await createApiConn(sessionId);
         const listener = new ListenerImpl({
             onUserChoseCard: this.handleUserChoseCard.bind(this),
             onUserJoined: this.handleUserJoined.bind(this),
             onUserLeft: this.handleUserLeft.bind(this),
+            onUserPurged: this.handleUserPurged.bind(this),
             onIssueChanged: this.handleIssueChanged.bind(this)
         });
 
@@ -108,7 +125,7 @@ export class ViewClient extends Component {
         super.onMount();
 
         const cards = await this.api!.getRoomCards(this.roomId, this.authToken!);
-        const cardHolderTemplate = this.element!.querySelector("div#cardHolder");
+        const cardHolderTemplate = this.element!.querySelector("div#cardHolder")!;
         if (!this.showCards) {
             cardHolderTemplate.remove();
         } else {
@@ -119,14 +136,25 @@ export class ViewClient extends Component {
             this.cardList.cardsInactive();
         }
 
-        this.element!.querySelector<HTMLSpanElement>("span#roomId").textContent = this.roomId.toString().padStart(4, "0");
-        this.element!.querySelector<HTMLSpanElement>("span#roomName").textContent = this.roomName.toString();
-        this.userList = this.element!.querySelector<HTMLUListElement>("div.userList ul");
-        const userChoicesCardHolderTemplate = this.element!.querySelector("div#userHolder");
+        this.element!.querySelector<HTMLSpanElement>("span#roomId")!.textContent = this.roomId.toString().padStart(4, "0");
+        this.element!.querySelector<HTMLSpanElement>("span#roomName")!.textContent = this.roomName || "undefined";
+        this.userList = this.element!.querySelector<HTMLUListElement>("div.userList ul")!;
+        const userChoicesCardHolderTemplate = this.element!.querySelector("div#userHolder")!;
         this.userChoices = new UserChoices(userChoicesCardHolderTemplate.parentElement!, []);
         userChoicesCardHolderTemplate.remove();
         await this.userChoices.mount();
         this.roomUsers!.forEach(user => this.handleUserJoined(user));
+        // TODO: If room does not support 'late joiners', return
+        const roomState: IRoomState = await this.api!.getRoomState(this.roomId, this.authToken!);
+        if (roomState.issue) {
+            this.handleIssueChanged(roomState.issue);
+        }
+        Object.entries(roomState.choices).forEach(e => {
+            if (e[0] === this.username) {
+                this.onCardSelected(e[1]);
+            }
+            this.handleUserChoseCard(e[0], e[1]);
+        });
     }
 
     protected onUnmount() {
@@ -135,5 +163,18 @@ export class ViewClient extends Component {
         if ((this.api as any)?.disconnect) {
             (this.api as any).disconnect();
         }
+    }
+
+    private sessionIdFromLocalStorage(roomId: number): string|null {
+        const localStorageValue = localStorage.getItem(LSK_SESSION_ID);
+        if (!localStorageValue) return null;
+        const parsed: ISessionTuple = JSON.parse(localStorageValue);
+        if (parsed.roomId !== roomId) return null;
+        return parsed.sessionId;
+    }
+
+    private setSessionIdInLocalStorage(sessionId: string, roomId: number): void {
+        const parsed: ISessionTuple = { sessionId, roomId };
+        localStorage.setItem(LSK_SESSION_ID, JSON.stringify(parsed));
     }
 }

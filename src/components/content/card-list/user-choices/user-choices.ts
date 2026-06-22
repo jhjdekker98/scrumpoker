@@ -3,18 +3,12 @@ import UserChoicesTemplate from "./user-choices.html?raw";
 import {Component} from "@slyce.dev/ridr";
 import {CardList} from "../card-list";
 
-export interface IParticipant {
-    username: string;
-    participant: boolean;
-}
-
 export class UserChoices extends Component {
     private readonly userChoices: Map<string, string> = new Map<string, string>(); // username -> choice
-    private readonly users: IParticipant[] = [];
+    private readonly users: string[] = []; // usernames
     private cardList?: CardList;
     private mounted: boolean = false;
     private revealed: boolean = false;
-    private allowsParticipants: boolean = true;
     private ghostUsers: string[] = []; // username[]
 
     // noinspection JSAnnotator
@@ -22,12 +16,7 @@ export class UserChoices extends Component {
 
     constructor(parent: HTMLElement, users: string[]) {
         super(parent);
-        for (const user: string of users) {
-            this.users.push({
-                username: user,
-                participant: true
-            });
-        }
+        this.users = users;
     }
 
     protected async onMount() {
@@ -54,22 +43,32 @@ export class UserChoices extends Component {
     }
 
     public onUserJoined(username: string): void {
-        this.users.push({username, participant: this.allowsParticipants});
         const usernameTag = document.createElement("span");
         usernameTag.className = "userTag";
         usernameTag.textContent = username;
-        this.cardList!.createNewCard("?").appendChild(usernameTag);
+        if (this.ghostUsers.includes(username)) {
+            const userIndex = this.userIndex(username);
+            this.cardList!.unghostCardByIndex(userIndex);
+            this.ghostUsers = this.ghostUsers.filter(u => u !== username);
+        } else {
+            this.cardList!.createNewCard("?").appendChild(usernameTag);
+            this.users.push(username);
+        }
     }
 
     public onUserLeft(username: string): void {
-        if (!this.users.some(p => p.username === username)) {
+        if (this.users.indexOf(username) === -1) {
             throw new Error(`Tried to remove user ${username} who is not in this Room`);
         }
-        if ("userChoices.has(username)", this.userChoices.has(username)) {
+        if (this.userChoices.has(username)) {
             this.markAsGhost(username);
         } else {
             this.removeUser(username);
         }
+    }
+
+    public onUserPurged(username: string): void {
+        this.removeUser(username);
     }
 
     public reset(): void {
@@ -79,12 +78,10 @@ export class UserChoices extends Component {
         this.cardList?.modifyCards("?");
         this.userChoices.clear();
         this.revealed = false;
-        this.allowsParticipants = false;
-        this.users.forEach(p => p.participant = true);
     }
 
     private removeUser(username: string): void {
-        if (!this.users.some(p => p.username === username)) {
+        if (this.users.indexOf(username) === -1) {
             throw new Error(`Tried to remove user ${username} who is not in this Room`);
         }
         const userIndex = this.userIndex(username);
@@ -96,8 +93,8 @@ export class UserChoices extends Component {
         }        
     }
 
-    private markAsGhost(username): void {
-        this.cardList.ghostCardByIndex(this.userIndex(username));
+    private markAsGhost(username: string): void {
+        this.cardList!.ghostCardByIndex(this.userIndex(username));
         this.ghostUsers.push(username);
     }
 
@@ -111,11 +108,11 @@ export class UserChoices extends Component {
     }
 
     private get usersWithChoices(): string[] {
-        return this.users.filter(p => p.participant).map(p => p.username);
+        return this.users;
     }
 
     private userIndex(username: string): number {
-        return this.users.findIndex(p => p.username === username);
+        return this.users.indexOf(username);
     }
 
     private arraysEqual<T>(a: T[], b: T[]): boolean {

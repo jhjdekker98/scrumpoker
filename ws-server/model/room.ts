@@ -8,4 +8,10 @@ export interface Room {
     issue?: string;
     listeners: Map<string, Listener>; // authToken -> Listener
     users: Map<string, string>; // authToken -> username
+    choices: Map<string, string> // username -> card
+}
+
+export interface IRoomState {
+    issue?: string;
+    choices: {[username: string]: string} // username -> card
 }

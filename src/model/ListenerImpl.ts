@@ -22,6 +22,10 @@ export class ListenerImpl extends RpcTarget implements Listener {
         this.handlers.onUserLeft(username);
     }
 
+    async onUserPurged(username: string): Promise<void> {
+        this.handlers.onUserPurged(username);
+    }
+
     async onUserChoseCard(username: string, card: string): Promise<void> {
         this.handlers.onUserChoseCard(username, card);
     }
