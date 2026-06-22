@@ -7,6 +7,7 @@ export interface IDialogConstructor {
     title?: string,
     hasInput: boolean,
     inputPlaceholder?: string,
+    inputValue?: string,
     buttonText?: string,
     onClose?: () => void
 }
@@ -39,8 +40,13 @@ export class Dialog extends Component {
 
         if (!this.constr.hasInput) {
             inputElem.remove();
-        } else if (this.constr.inputPlaceholder) {
-            inputElem.placeholder = this.constr.inputPlaceholder;
+        } else {
+            if (this.constr.inputPlaceholder) {
+                inputElem.placeholder = this.constr.inputPlaceholder;
+            }
+            if (this.constr.inputValue) {
+                inputElem.value = this.constr.inputValue;
+            }
         }
 
         if (this.constr.buttonText && this.constr.onClose) {

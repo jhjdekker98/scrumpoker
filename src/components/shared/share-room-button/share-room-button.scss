@@ -1,0 +1,15 @@
+#shareBtn {
+  &:before {
+    content: "🭼🭿";
+    font-size: 0.75em;
+    margin-right: -1.33em;
+    transform: translateY(2px);
+    display: inline-block;
+  }
+
+  background: none;
+  color: var(--text-color);
+  border: 1px dashed var(--text-color);
+  cursor: pointer;
+  padding: 1px 7px 1px 4px;
+}

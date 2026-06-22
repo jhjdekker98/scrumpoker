@@ -77,6 +77,7 @@ export function showPrompt(parent: HTMLElement, msg: string, title?: string, def
                 content: msg,
                 title,
                 hasInput: true,
+                inputValue: defaultText,
                 buttonText: "OK",
                 onClose: () => resolve(dialog.value || "")
             });

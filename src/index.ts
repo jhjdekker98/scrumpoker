@@ -44,6 +44,7 @@ await (async () => {
             .then(() => window.location.assign(window.location.origin));
     }
 
+    window.history.pushState("", "", "/");
     const viewClient = new ViewClient(app, roomId, username, roomPass);
     await viewClient.init()
         .then(async () => {
