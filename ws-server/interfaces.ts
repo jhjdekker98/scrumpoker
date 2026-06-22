@@ -332,6 +332,7 @@ export class ScrumPokerApiImpl extends RpcTarget implements ScrumPokerApi {
             if (state.token === authToken) {
                 this.httpListeners.delete(sid);
                 this.sessionRegistry.delete(sid);
+                this.historicSessionRecord.delete(sid);
                 return;
             }
         }
