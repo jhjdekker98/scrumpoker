@@ -6,6 +6,7 @@ import {JoinServer} from "./join-server/join-server";
 import {ViewServer} from "./view-server/view-server";
 import {ViewClient} from "./view-client/view-client";
 import {LoadingSpinner} from "../shared/loading-spinner/loading-spinner";
+import {showError} from "../../constants";
 
 export class Content extends Component {
     // noinspection JSAnnotator
@@ -32,7 +33,7 @@ export class Content extends Component {
                     await joinServer.mount();
                     await loadingSpinner.unmount();
                     this.afterMount();
-                    this.showErrorPopup(err);
+                    showError(this.element!, err);
                 });
         });
         joinServer.setOnSubmit(async (roomId: number, username: string, roomPass?: string) => {
@@ -50,17 +51,13 @@ export class Content extends Component {
                     await joinServer.mount();
                     await loadingSpinner.unmount();
                     this.afterMount();
-                    this.showErrorPopup(err);
+                    showError(this.element!, err);
                 });
         });
 
         await createServer.mount();
         await joinServer.mount();
         this.afterMount();
-    }
-
-    private showErrorPopup(error: string): void {
-        alert(error); // TODO: Implement a custom, styled dialog box
     }
 
     private afterMount(): void {
