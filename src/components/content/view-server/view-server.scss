@@ -1,7 +1,13 @@
 div#viewServer {
   color: var(--text-color);
-  width: 100%;
+  width: calc(100% - 2em);
   padding: 1em;
+
+  h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+  }
 
   .issueInput {
     display: flex;

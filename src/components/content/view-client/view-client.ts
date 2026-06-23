@@ -9,6 +9,7 @@ import {ListenerImpl} from "../../../model/ListenerImpl";
 import {UserChoices} from "../card-list/user-choices/user-choices";
 import { v4 as uuid } from "uuid";
 import {createApiConn, LSK_SESSION_ID} from "../../../constants";
+import {ShareRoomButton} from "../../shared/share-room-button/share-room-button";
 
 interface ISessionTuple {
     sessionId: string,
@@ -29,6 +30,7 @@ export class ViewClient extends Component {
     private userList?: HTMLUListElement;
     private userChoices?: UserChoices;
     private didInit: boolean = false;
+    private shareBtn: ShareRoomButton | undefined;
 
     // noinspection JSAnnotator
     static template = ViewClientTemplate;
@@ -138,6 +140,9 @@ export class ViewClient extends Component {
 
         this.element!.querySelector<HTMLSpanElement>("span#roomId")!.textContent = this.roomId.toString().padStart(4, "0");
         this.element!.querySelector<HTMLSpanElement>("span#roomName")!.textContent = this.roomName || "undefined";
+        this.shareBtn = new ShareRoomButton(this.element!.querySelector<HTMLHeadingElement>("h1")!, this.roomId, this.roomPass);
+        await this.shareBtn.mount();
+
         this.userList = this.element!.querySelector<HTMLUListElement>("div.userList ul")!;
         const userChoicesCardHolderTemplate = this.element!.querySelector("div#userHolder")!;
         this.userChoices = new UserChoices(userChoicesCardHolderTemplate.parentElement!, []);
@@ -159,6 +164,7 @@ export class ViewClient extends Component {
 
     protected onUnmount() {
         super.onUnmount();
+        this.shareBtn?.unmount();
         this.api?.leaveRoom(this.roomId!, this.authToken!);
         if ((this.api as any)?.disconnect) {
             (this.api as any).disconnect();

@@ -1,12 +1,15 @@
 import {newHttpBatchRpcSession, newWebSocketRpcSession, RpcStub} from "capnweb";
 import {ScrumPokerApi} from "../ws-server/interfaces";
 import {config} from "../envloader";
+import {Dialog} from "./components/shared/dialog/dialog";
 
 export const LSK_SESSION_ID = "sessId";
 export const THEME_KEY = "selected-theme";
 export type Theme = "light" | "dark";
+type QueryProps = {[prop: string]: string};
 const themes = import.meta.glob("/themes/*.scss");
 const POLLING_INTERVAL = 500;
+let dialogQueue: Promise<any> = Promise.resolve();
 
 export function applyTheme(theme: Theme): Promise<void> {
     return new Promise(async (resolve, reject) => {
@@ -34,6 +37,53 @@ export async function createApiConn(sessionId: string): Promise<RpcStub<ScrumPok
         console.warn("[CONN] WebSocket failed, initializing HTTP fallback");
         return new PersistentHttpStub<ScrumPokerApi>(url, sessionId) as any;
     }
+}
+
+export function getQueryProps(): QueryProps {
+    if (window.location.search.length <= 1) return {};
+    return Object.fromEntries(window.location.search
+        .substring(1)
+        .split("&")
+        .map(kvp => kvp
+            .split("=")
+            .map(s => decodeURIComponent(s))));
+}
+
+function queueDialog<T>(createDialog: () => Promise<T>): Promise<T> {
+    const result = dialogQueue.then(createDialog);
+    dialogQueue = result.catch(() => {});
+    return result;
+}
+
+export function showError(parent: HTMLElement, msg: string, title?: string): Promise<void> {
+    return queueDialog(() =>
+        new Promise((resolve) => {
+            const dialog: Dialog = new Dialog(parent, {
+                content: msg,
+                title,
+                hasInput: false,
+                buttonText: "OK",
+                onClose: () => resolve()
+            });
+            dialog.mount();
+        })
+    );
+}
+
+export function showPrompt(parent: HTMLElement, msg: string, title?: string, defaultText?: string): Promise<string> {
+    return queueDialog(() =>
+        new Promise((resolve, reject) => {
+            const dialog: Dialog = new Dialog(parent, {
+                content: msg,
+                title,
+                hasInput: true,
+                inputValue: defaultText,
+                buttonText: "OK",
+                onClose: () => resolve(dialog.value || "")
+            });
+            dialog.mount();
+        })
+    );
 }
 
 class PersistentHttpStub<T> {

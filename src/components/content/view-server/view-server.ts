@@ -7,6 +7,7 @@ import {ListenerImpl} from "../../../model/ListenerImpl";
 import {UserChoices} from "../card-list/user-choices/user-choices";
 import { v4 as uuid } from "uuid";
 import {createApiConn} from "../../../constants";
+import {ShareRoomButton} from "../../shared/share-room-button/share-room-button";
 
 export class ViewServer extends Component {
     private readonly roomName: string;
@@ -17,6 +18,7 @@ export class ViewServer extends Component {
     private api?: RpcStub<ScrumPokerApi>;
     private userChoices?: UserChoices;
     private didInit: boolean = false;
+    private shareBtn: ShareRoomButton | undefined;
 
     // noinspection JSAnnotator
     static template = ViewServerTemplate;
@@ -78,6 +80,9 @@ export class ViewServer extends Component {
 
         this.element!.querySelector<HTMLSpanElement>("span#roomId").textContent = this.roomId.toString().padStart(4, "0");
         this.element!.querySelector<HTMLSpanElement>("span#roomName").textContent = this.roomName;
+        this.shareBtn = new ShareRoomButton(this.element!.querySelector<HTMLHeadingElement>("h1")!, this.roomId, this.roomPass);
+        await this.shareBtn.mount();
+
         this.element!.querySelector<HTMLButtonElement>(".issueInput .inputBox button").addEventListener("click", () => {
             const issueInput = this.element!.querySelector<HTMLInputElement>(`.issueInput .inputBox input[name="issue"]`);
             const newIssueText = issueInput.value;
@@ -94,6 +99,7 @@ export class ViewServer extends Component {
 
     protected onUnmount() {
         super.onUnmount();
+        this.shareBtn?.unmount();
         this.api?.leaveRoom(this.roomId!, this.authToken!);
         if ((this.api as any)?.disconnect) {
             (this.api as any).disconnect();
